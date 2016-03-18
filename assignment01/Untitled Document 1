@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Program 1: Stats
+
+# Usage
+# stats { -rows | -cols } [input_file]
+
+# Citations:
+# The Linux Command Line (TCLC)
+# Redirect to standard out using >&2 at end of echo: TLCL Page 388 
+
+# GLOBALS
+read_from_file=false
+
+# CONSTANTS
+USAGE_STRING='{-rows | -cols} [input_file]'
+
+# note: $# is the number of arguments
+# >&2 redirect to standard error
+
+
+# Return 0 if number of arguments is 0 or 1, else print usage message and exit
+validate_num_args () {
+	if [[ $# -eq 1 -o $# -eq 2 ]]; then
+		return 0  # success
+	else
+		print_usage
+	fi
+}
+
+
+
+# Return 0 
+validate_arg1 () {
+
+}
+
+
+set_processing_type () {
+
+}
+
+
+
+print_usage () {
+	echo "Usage: $0 $USAGE_STRING" >&2 
+	exit 1
+}
