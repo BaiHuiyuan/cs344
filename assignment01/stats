@@ -10,10 +10,11 @@
 # Redirect to standard out using >&2 at end of echo: TLCL Page 388 
 
 # GLOBALS
-read_from_file=false
+interactive_mode=false
 
 # CONSTANTS
 USAGE_STRING='{-rows | -cols} [input_file]'
+FILENAME='stats'
 
 # note: $# is the number of arguments
 # >&2 redirect to standard error
@@ -31,7 +32,7 @@ validate_num_args () {
 	fi
 		return 0
 }
-return 0
+
 
 # Return 0 (true) if argument 1 is valid format -r* or -c* regex
 # If it does not match, exits with 
@@ -39,29 +40,28 @@ return 0
 validate_arg1 () {
 	echo "called validate_arg1 with: $1"
 	if [[ "$1" =~ ^-r.*$ ]]; then
-		echo "Matched regex with -r"
-		set_interactive_mode true
+		# echo "Matched regex with -r"
 		return 0  # true
 	elif [[ "$1" =~ ^-c.*$ ]]; then
-		echo "Matched regex with -c"
-		set_interactive_mode true
+		# echo "Matched regex with -c"
 		return 0  # true
 	else
-		echo "Regex not matched"
+		echo "Regex not matched" >&2 # TODO: Print more appropriate error message
 		return 1 # false
 	fi
 }
 
 
 set_interactive_mode () {
-	echo 'called set_interactive_mode()'
+	# echo 'called set_interactive_mode()'
+	interactive_mode=true
 	return
 }
 
 
-
+# Displays usage to user
 print_usage () {
-	echo "Usage: $0 $USAGE_STRING" >&2 
+	echo "Usage: $FILENAME $USAGE_STRING" >&2 
 	exit 1
 }
 
@@ -70,3 +70,4 @@ print_usage () {
 echo "Number of arguments: $#"
 validate_num_args $#
 validate_arg1 $1
+echo "interactive mode: $interactive_mode"
