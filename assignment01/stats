@@ -11,10 +11,11 @@
 
 # GLOBALS
 interactive_mode=false
+cols_mode=false
 
 # CONSTANTS
 USAGE_STRING='{-rows | -cols} [input_file]'
-FILENAME='stats'
+SCRIPT_NAME='stats'
 
 # note: $# is the number of arguments
 # >&2 redirect to standard error
@@ -22,9 +23,9 @@ FILENAME='stats'
 
 # Return 0 if number of arguments is 0 or 1, else print usage message and exit
 validate_num_args () {
-	echo "Arguments inside validate: $1"
+	# echo "Arguments inside validate: $1"
 	if [[ "$1" == 1 ]]; then
-		set_interactive_mode
+		set_interactive_mode true
 	elif [[ "$1" == 2 ]]; then
 		return 0  # success
 	else
@@ -35,39 +36,71 @@ validate_num_args () {
 
 
 # Return 0 (true) if argument 1 is valid format -r* or -c* regex
-# If it does not match, exits with 
+# If it does not match, exits with usage message
 # Citation: Use of =~ to test against a regex- TLCL Page 389
 validate_arg1 () {
-	echo "called validate_arg1 with: $1"
+	# echo "called validate_arg1 with: $1"
 	if [[ "$1" =~ ^-r.*$ ]]; then
 		# echo "Matched regex with -r"
+		set_cols_mode false
 		return 0  # true
 	elif [[ "$1" =~ ^-c.*$ ]]; then
 		# echo "Matched regex with -c"
+		set_cols_mode true
 		return 0  # true
 	else
-		echo "Regex not matched" >&2 # TODO: Print more appropriate error message
-		return 1 # false
+		echo "Invalid syntax" >&2 # TODO: Print more appropriate error message
+		print_usage
 	fi
 }
 
 
 set_interactive_mode () {
 	# echo 'called set_interactive_mode()'
-	interactive_mode=true
+	interactive_mode=$1
 	return
 }
 
+set_cols_mode () {
+	cols_mode=$1;
+	echo "Calculating on columns: $cols_mode"
+	return
+}
+
+read_from_file () {
+	echo 'Hello from read_from_file()'
+	if [[ ! -e "$1" ]]; then
+		echo "File '$1' does not exist" >&2
+	elif [[ ! -r "$1" ]]; then
+		echo "File '$1' not readable" >&2
+	elif [[ -f "$1" ]]; then
+		# File exists, try to open it and process the data
+		echo 'File exists, attempting to open and parse.'
+	fi
+	return
+}
 
 # Displays usage to user
 print_usage () {
-	echo "Usage: $FILENAME $USAGE_STRING" >&2 
+	echo "$SCRIPT_NAME: Usage: $SCRIPT_NAME $USAGE_STRING" >&2 
 	exit 1
 }
 
 
 # main
-echo "Number of arguments: $#"
-validate_num_args $#
-validate_arg1 $1
-echo "interactive mode: $interactive_mode"
+
+# Put the arguments into more meaningful variable names
+num_args=$#
+process_mode=$1
+file_name=$2
+
+# Validate the command line arguments and attempt to open file
+# echo "Number of arguments: $#"
+validate_num_args $num_args
+validate_arg1 $process_mode
+# echo "interactive mode: $interactive_mode"
+
+# If interactive mode is off, attempt to open file
+if [ interactive_mode ] ; then
+	read_from_file $file_name
+fi
