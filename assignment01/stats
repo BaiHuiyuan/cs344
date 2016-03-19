@@ -8,6 +8,7 @@
 # Citations:
 # The Linux Command Line (TCLC)
 # Redirect to standard out using >&2 at end of echo: TLCL Page 388 
+# note: $# is the number of arguments
 
 # GLOBALS
 interactive_mode=false
@@ -15,11 +16,7 @@ cols_mode=false
 
 # CONSTANTS
 USAGE_STRING='{-rows | -cols} [input_file]'
-SCRIPT_NAME='stats'
-
-# note: $# is the number of arguments
-# >&2 redirect to standard error
-
+SCRIPT_NAME=$(basename $0)  # Cite TLCL Page 440
 
 # Return 0 if number of arguments is 0 or 1, else print usage message and exit
 validate_num_args () {
@@ -82,6 +79,13 @@ read_from_file () {
 	return
 }
 
+convert_to_cols () {
+	input_file=$1
+	tempRow="temprowfile"
+
+
+}
+
 read_from_stdin () {
 	echo "Hello from read_from_stdin"
 	return
@@ -113,15 +117,29 @@ validate_arg1 $process_mode
 echo "interactive mode: $interactive_mode"
 echo "Calculating on columns: $cols_mode"
 
-# If interactive mode is off, attempt to open file
-if [[ $interactive_mode == false ]] ; then
-	read_from_file $file_name  # TODO: Fix this. entering here even if interactive_mode is false
-else
+
+# Create a file if in creative mode
+if [[ $interactive_mode == true ]] ; then
 	# read_from_stdin
-	touch temp
-	while read value; do
-		printf "%d " $value
-	done < temp
+	echo "Here we would read from standard input and store in a file"
+	file_name=temp  # change to whatever file we end up storing our temp data
 fi
 
-process_data
+# Convert a row file to a column file if cosl_mode is set
+if [[ $cols_mode == true ]]; then
+	convert_to_cols $file_name
+fi
+# read from a file
+# Citation: TLCL Page 414
+i=0
+row_sum=0
+declare -a row
+while read value; do
+	# row[i]=$value
+	# i=$i+1
+	echo "$value"
+done < $file_name
+
+echo "$row\n"
+echo $row_sum
+# process_data
