@@ -135,11 +135,12 @@ i=0
 row_sum=0
 declare -a row
 while read value; do
-	# row[i]=$value
-	# i=$i+1
+	row[i]=$value
+	i=$i+1
+	row_sum=$row_sum+$row[i]
 	echo "$value"
 done < $file_name
 
-echo "$row\n"
+# echo "$row\n"
 echo $row_sum
 # process_data
