@@ -129,18 +129,27 @@ fi
 if [[ $cols_mode == true ]]; then
 	convert_to_cols $file_name
 fi
-# read from a file
+
+# read each row from $file_name and process
 # Citation: TLCL Page 414
-i=0
-row_sum=0
-declare -a row
-while read value; do
-	row[i]=$value
-	i=$i+1
-	row_sum=$row_sum+$row[i]
-	echo "$value"
+
+
+while read row_string; do  # row_string is the string form
+	i=0
+	row_sum=0
+	row_no_tabs="$(echo $row_string | tr '\t' ' ')"
+	declare -a row_values # array to store the actual values
+	for j in $row_no_tabs; do
+		row_values[i]=$j
+		echo ${row_values[i]\n}
+		let i++
+	done
+	echo "Next row...\n"
+	#let i++
+	#row_sum=$(($row_sum + i))
+	#echo "$row_sum"
 done < $file_name
 
 # echo "$row\n"
-echo $row_sum
+# echo "$row_sum"
 # process_data
