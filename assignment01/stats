@@ -13,6 +13,7 @@
 # GLOBALS
 interactive_mode=false
 cols_mode=false
+pid=$$  # Cite: Page 495 TCLC, this is the current executing scripts PID
 
 # CONSTANTS
 USAGE_STRING='{-rows | -cols} [input_file]'
@@ -171,20 +172,36 @@ while read row_string; do  # row_string is the string form
 	# echo "row_average: $row_average"
 	# echo "Average calculated and stored: ${averages[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
 
-	# Median is middle value. $num_values / 2 gets us correct index if odd 
-	# (e.g. 9/2 = 4.5 = 4 in integer math, which is 5th value in array)
-	# If $num_values is even, it's the same because the greater of 2 middle values is the one with the higher index
-	# (e.g. 12/2 = 6, which is 7th array element and is greater than 6th)
+	# Median is middle array value. $num_values / 2 gets us correct index if odd or even.
 	middle=$(( $num_values / 2 ))
-	# echo "middle: $middle"
-	row_median=${row_sorted[middle]}
-	medians[current_row]=$row_median
+	# echo "middle: $middle"  # TODO: COMMENT OUT AND/OR DELETE
+	
+	medians[current_row]=${row_sorted[middle]}
 	# echo "Median calculated and stored: ${medians[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
 
 	# echo "Next row..." # TODO: COMMENT OUT AND/OR DELETE
 	let current_row++
 done < $file_name
 
-# echo "$row\n"
-# echo "$row_sum"
-# process_data
+
+# Print the data differently if calculating data on rows or columns
+if [[ $cols_mode == true ]]; then
+	printf "Averages:\n"
+	for (( i=0; i<${#averages[@]}; i=i+1)); do
+		printf "${averages[i]}\t"
+	done
+
+	printf "\nMedians:\n"
+	for (( i=0; i<${#medians[@]}; i=i+1)); do
+		printf "${medians[i]}\t"
+	done
+	printf "\n"
+else
+	printf "Average\tMedian\n"
+	for (( i=0; i<${#averages[@]}; i=i+1)); do
+		printf "${averages[i]}\t${medians[i]}\n"
+	done
+fi
+
+# TODO: TRAP handling: Handle interrupt, hangup, and term signals to remove temp files if stats program is terminated
+
