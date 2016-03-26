@@ -1,14 +1,12 @@
 #!/bin/bash
 
 # Program 1: Stats
-
-# Usage
+# Usage:
 # stats { -rows | -cols } [input_file]
 
 # Citations:
 # The Linux Command Line (TCLC)
 # Redirect to standard out using >&2 at end of echo: TLCL Page 388 
-# note: $# is the number of arguments
 
 # GLOBALS
 interactive_mode=false
@@ -16,22 +14,21 @@ cols_mode=false
 pid=$$  # Cite: Page 495 TCLC, this is the current executing scripts PID
 
 # CONSTANTS
-USAGE_STRING='{-rows | -cols} [input_file]'
+USAGE_STRING='{-rows|-cols} [file]'
 SCRIPT_NAME=$(basename $0)  # Cite TLCL Page 440
 
 # Return 0 if number of arguments is 0 or 1, else print usage message and exit
 validate_num_args () {
 	# echo "Arguments inside validate: $1"
 	if [[ "$1" == 1 ]]; then
-		set_interactive_mode true
+		interactive_mode=true
 	elif [[ "$1" == 2 ]]; then
 		return 0  # success
 	else
 		print_usage
 	fi
-		return 0
+	return 0
 }
-
 
 # Return 0 (true) if argument 1 is valid format -r* or -c* regex
 # If it does not match, exits with usage message
@@ -40,11 +37,11 @@ validate_arg1 () {
 	# echo "called validate_arg1 with: $1"
 	if [[ "$1" =~ ^-r.*$ ]]; then
 		# echo "Matched regex with -r"
-		set_cols_mode false
+		cols_mode=false
 		return 0  # true
 	elif [[ "$1" =~ ^-c.*$ ]]; then
 		# echo "Matched regex with -c"
-		set_cols_mode true
+		cols_mode=true
 		return 0  # true
 	else
 		echo "Invalid syntax" >&2 # TODO: Print more appropriate error message
@@ -52,31 +49,30 @@ validate_arg1 () {
 	fi
 }
 
-
-set_interactive_mode () {
-	# echo 'called set_interactive_mode()'
-	interactive_mode=$1
-	return
-}
-
-# Sets cols_mode global to be either true or false (by argument passed)
-set_cols_mode () {
-	cols_mode=$1;
-	return
-}
-
+# Attempts to read from file, exits with error message if problem reading or does not exist
 read_from_file () {
-	echo 'Hello from read_from_file()'
 	if [[ ! -e "$1" ]]; then
-		echo "File '$1' does not exist" >&2
+		echo "$SCRIPT_NAME: cannot read $1 - file does not exist" >&2
 		exit 1
 	elif [[ ! -r "$1" ]]; then
-		echo "File '$1' not readable" >&2
+		echo "$SCRIPT_NAME: cannot read $1 - file not readable" >&2
 		exit 1
 	elif [[ -f "$1" ]]; then
-		# File exists, try to open it and process the data
-		echo 'File exists, attempting to open and parse.'
+		# File exists, return out of function
+		return
+	else
+		# A backup catch-all if some other error occured
+		echo "$SCRIPT_NAME: cannot read $1 - unknown reason" >&2
+		exit 1
 	fi
+	return
+}
+
+# Redirects stdin to a temporary file which we clean up later
+read_from_stdin () {
+	temp_file=./temp$pid   # $pid was defined at head of file in constants
+	file_name=$temp_file
+	cat > "$temp_file"
 	return
 }
 
@@ -86,24 +82,16 @@ convert_to_cols () {
 	# TODO: FINISH
 }
 
-read_from_stdin () {
-	echo "Hello from read_from_stdin"
-	return
-}
-
-# process_data () {
-# 	echo "Hello from process_data"
-# 	return
-# }
 
 # Displays usage to user
 print_usage () {
-	echo "$SCRIPT_NAME: Usage: $SCRIPT_NAME $USAGE_STRING" >&2 
+	echo "Usage: $SCRIPT_NAME $USAGE_STRING" >&2 
 	exit 1
 }
 
-
-# main
+# ############################################################################
+# main program logic
+# ############################################################################
 
 # Put the arguments into more meaningful variable names
 num_args=$#
@@ -111,55 +99,52 @@ process_mode=$1
 file_name=$2
 
 # Validate the command line arguments and attempt to open file
-# echo "Number of arguments: $#"
 validate_num_args $num_args
 validate_arg1 $process_mode
-echo "interactive mode: $interactive_mode" # TODO: COMMENT OUT AND/OR DELETE
-echo "Calculating on columns: $cols_mode" # TODO: COMMENT OUT AND/OR DELETE
 
-
-# Create a file if in creative mode
+# Create a file if in interactive mode (or using a pipe); else read from file
 if [[ $interactive_mode == true ]] ; then
-	# read_from_stdin
-	echo "Here we would read from standard input and store in a file" # TODO: COMMENT OUT AND/OR DELETE
-	file_name=./temp  # change to whatever file we end up storing our temp data
+	read_from_stdin
+else
+	read_from_file $file_name
 fi
 
-# Convert a row file to a column file if cosl_mode is set
+# Convert a row file to a column file if cols_mode is set
 if [[ $cols_mode == true ]]; then
 	convert_to_cols $file_name
 fi
-
-# read each row from $file_name and process
-# Citation: TLCL Page 414
 
 # Arrays to store the averages and medians in
 declare -a averages
 declare -a medians
 current_row=0
 
+# read each row from $file_name and process
+# Citation: TLCL Page 414 / class note examples
 while read row_string; do  # row_string is the string form
-	i=0
-	row_sum=0
+	i=0		# index to store the actual values in later
+	row_sum=0	# Sum of the current row
+
+	# Parse the string using tr to remove the tabs and repalce with spaces
 	row_no_tabs="$(echo $row_string | tr '\t' ' ')"
-	declare -a row_values # array to store the actual values
+	
+	declare -a row_values # array to store the actual numeric values
+	
+	# Iterate through the clean string and place teh values in array
 	for j in $row_no_tabs; do
 		row_values[i]=$j
-		# echo ${row_values[i]\n}
 		row_sum=$(($row_sum + $j))
 		let i++
 	done
-	# echo "row_sum: $row_sum"
 
 	# Sort the array for this row
 	# Citation: Page 484 of TLCL
 	row_sorted=($(for k in "${row_values[@]}"; do echo $k; done | sort -n))
-	echo "Sorted array: ${row_sorted[@]}" # TODO: COMMENT OUT AND/OR DELETE
 	
-	# Calculate the number of values in the row
-	num_values=${#row_sorted[@]}  # size of the array. Cite: Pg 483 TLCL
-	# echo "num_values: $num_values"
-	
+	# Store the number of values in the row in num_values to calc average & median
+	# Citation: Pg 483 TLCL
+	num_values=${#row_sorted[@]}  
+		
 	# Calculate the average for this row
 	row_average=$(( $row_sum / $num_values ))
 	row_remainder=$(( $row_sum % $num_values ))
@@ -168,35 +153,33 @@ while read row_string; do  # row_string is the string form
 	if [[ $(( $row_remainder * 2 )) -ge $num_values ]] ; then
 		let row_average++
 	fi
-	averages[current_row]=$row_average
-	# echo "row_average: $row_average"
-	# echo "Average calculated and stored: ${averages[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
-
+	averages[current_row]=$row_average	# Store result in array
+	
 	# Median is middle array value. $num_values / 2 gets us correct index if odd or even.
 	middle=$(( $num_values / 2 ))
-	# echo "middle: $middle"  # TODO: COMMENT OUT AND/OR DELETE
-	
-	medians[current_row]=${row_sorted[middle]}
-	# echo "Median calculated and stored: ${medians[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
+	medians[current_row]=${row_sorted[middle]}  # Store result in array
 
-	# echo "Next row..." # TODO: COMMENT OUT AND/OR DELETE
-	let current_row++
+	let current_row++ # Index into the averages[] and medians[] arrays
 done < $file_name
 
 
-# Print the data differently if calculating data on rows or columns
+# Format output differently if calculating data on rows or columns
+# If calculating on columns...
 if [[ $cols_mode == true ]]; then
+	# Print the averages first
 	printf "Averages:\n"
 	for (( i=0; i<${#averages[@]}; i=i+1)); do
 		printf "${averages[i]}\t"
 	done
-
+	# Print the medians next
 	printf "\nMedians:\n"
 	for (( i=0; i<${#medians[@]}; i=i+1)); do
 		printf "${medians[i]}\t"
 	done
 	printf "\n"
+# Else if calculating on rows...
 else
+	# Print headers then iterate through both arrays at same time and print 
 	printf "Average\tMedian\n"
 	for (( i=0; i<${#averages[@]}; i=i+1)); do
 		printf "${averages[i]}\t${medians[i]}\n"
@@ -204,4 +187,10 @@ else
 fi
 
 # TODO: TRAP handling: Handle interrupt, hangup, and term signals to remove temp files if stats program is terminated
+# Citation: Slide 42 of Lecture2 notes
+trap "rm -f $temp_file; exit 1" INT HUP TERM
 
+# cleanup our temp file
+if [[ -f $temp_file ]] ; then
+	rm "$temp_file"
+fi
