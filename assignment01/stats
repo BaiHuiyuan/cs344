@@ -80,6 +80,7 @@ read_from_stdin () {
 convert_to_cols () {
 	input_file=$1
 	temp_col_file=./col_temp$pid
+	touch "$temp_col_file"
 
 	# Citation: Page 277 TLCL and stackoverflow.com/questions/1729824/transpose-a-file-in-bash
 	cols="$(head -n 1 $input_file | wc -w)"	# the number of columns ; controls the for loop

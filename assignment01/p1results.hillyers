@@ -3,12 +3,12 @@ Creating file1 file2 file3 file4 file5
 
 
 total 28
--rw-rw-r-- 1 shawn shawn  259 Mar 26 02:57 file1
--rw-rw-r-- 1 shawn shawn   49 Mar 26 02:57 file2
--rw-rw-r-- 1 shawn shawn    3 Mar 26 02:57 file3
--rw-rw-r-- 1 shawn shawn    0 Mar 26 02:57 file4
--rw-rw-r-- 1 shawn shawn 5831 Mar 26 02:57 file5
--rwxrwxr-x 1 shawn shawn 5967 Mar 26 02:57 stats
+-rw-rw-r-- 1 shawn shawn  259 Mar 26 03:11 file1
+-rw-rw-r-- 1 shawn shawn   49 Mar 26 03:11 file2
+-rw-rw-r-- 1 shawn shawn    3 Mar 26 03:11 file3
+-rw-rw-r-- 1 shawn shawn    0 Mar 26 03:11 file4
+-rw-rw-r-- 1 shawn shawn 5831 Mar 26 03:11 file5
+-rwxrwxr-x 1 shawn shawn 5991 Mar 26 03:11 stats
 
 
 --------------------------------------------------------------------------
@@ -101,7 +101,6 @@ Average	Median
 --------------------------------------------------------------------------
 File 4 Statistics by Cols: lose 3 points for an error not from script
 
-./stats: line 175: ./col_temp15639: No such file or directory
 Averages:
 
 Medians:
@@ -305,8 +304,8 @@ stats
 
   PID TTY          TIME CMD
  7256 pts/2    00:00:00 bash
-14388 pts/2    00:00:00 p1gradingscript
-19099 pts/2    00:00:00 ps
+19274 pts/2    00:00:00 p1gradingscript
+24008 pts/2    00:00:00 ps
 
 
 After Kill: 8 points if no temp files
@@ -319,7 +318,7 @@ stats
 
   PID TTY          TIME CMD
  7256 pts/2    00:00:00 bash
-14388 pts/2    00:00:00 p1gradingscript
-19102 pts/2    00:00:00 ps
+19274 pts/2    00:00:00 p1gradingscript
+24019 pts/2    00:00:00 ps
 
 
