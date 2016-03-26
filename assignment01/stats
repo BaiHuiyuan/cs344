@@ -144,6 +144,11 @@ while read row_string; do  # row_string is the string form
 		echo ${row_values[i]\n}
 		let i++
 	done
+	
+	# Sort the array for this row
+	# Citation: Page 484 of TLCL
+	row_sorted=($(for k in "${row_values[@]}"; do echo $k; done | sort))
+	echo "Sorted array: ${row_sorted[@]}"
 	echo "Next row...\n"
 	#let i++
 	#row_sum=$(($row_sum + i))
