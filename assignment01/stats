@@ -76,12 +76,22 @@ read_from_stdin () {
 	return
 }
 
+
 convert_to_cols () {
 	input_file=$1
-	temp_col_file=./tempCol$pid
-	# cat $input_file | tr '\n' '\t' > "$temp_col_file"
+	temp_col_file=./col_temp$pid
+
+	# Citation: Page 277 TLCL and stackoverflow.com/questions/1729824/transpose-a-file-in-bash
+	cols="$(head -n 1 $input_file | wc -w)"	# the number of columns ; controls the for loop
+
+	# for every column in the file, go through and perform some hackering using sed ("stream editor") by piping the fields from the input file into
+	# transform (tr), which is converting the newliens into tabs. This output is piped into into sed which is doing a global replacement that results in
+	# our properly formatted file...
+	for (( i=1; i<=$cols; i++ )) do
+		cut -f $i $input_file | tr $'\n' $'\t' | sed -e "s/\t$/\n/g" >> "$temp_col_file"
+	done
+
 	file_name=$temp_col_file
-	
 }
 
 
@@ -190,9 +200,7 @@ fi
 
 # TODO: TRAP handling: Handle interrupt, hangup, and term signals to remove temp files if stats program is terminated
 # Citation: Slide 42 of Lecture2 notes
-trap "rm -f $temp_file; exit 1" INT HUP TERM
+trap "rm -f *temp$pid; exit 1" INT HUP TERM
 
-# cleanup our temp file(s) if exist
-if [[ -f $temp_file ]] ; then
-	rm "$temp_file"
-fi
+# cleanup our temp file(s)
+rm -f *temp$pid
