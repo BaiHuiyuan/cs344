@@ -78,8 +78,10 @@ read_from_stdin () {
 
 convert_to_cols () {
 	input_file=$1
-	tempRow="temprowfile"
-	# TODO: FINISH
+	temp_col_file=./tempCol$pid
+	# cat $input_file | tr '\n' '\t' > "$temp_col_file"
+	file_name=$temp_col_file
+	
 }
 
 
@@ -190,7 +192,7 @@ fi
 # Citation: Slide 42 of Lecture2 notes
 trap "rm -f $temp_file; exit 1" INT HUP TERM
 
-# cleanup our temp file
+# cleanup our temp file(s) if exist
 if [[ -f $temp_file ]] ; then
 	rm "$temp_file"
 fi
