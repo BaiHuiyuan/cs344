@@ -82,8 +82,7 @@ read_from_file () {
 convert_to_cols () {
 	input_file=$1
 	tempRow="temprowfile"
-
-
+	# TODO: FINISH
 }
 
 read_from_stdin () {
@@ -91,10 +90,10 @@ read_from_stdin () {
 	return
 }
 
-process_data () {
-	echo "Hello from process_data"
-	return
-}
+# process_data () {
+# 	echo "Hello from process_data"
+# 	return
+# }
 
 # Displays usage to user
 print_usage () {
@@ -114,15 +113,15 @@ file_name=$2
 # echo "Number of arguments: $#"
 validate_num_args $num_args
 validate_arg1 $process_mode
-echo "interactive mode: $interactive_mode"
-echo "Calculating on columns: $cols_mode"
+echo "interactive mode: $interactive_mode" # TODO: COMMENT OUT AND/OR DELETE
+echo "Calculating on columns: $cols_mode" # TODO: COMMENT OUT AND/OR DELETE
 
 
 # Create a file if in creative mode
 if [[ $interactive_mode == true ]] ; then
 	# read_from_stdin
-	echo "Here we would read from standard input and store in a file"
-	file_name=temp  # change to whatever file we end up storing our temp data
+	echo "Here we would read from standard input and store in a file" # TODO: COMMENT OUT AND/OR DELETE
+	file_name=./temp  # change to whatever file we end up storing our temp data
 fi
 
 # Convert a row file to a column file if cosl_mode is set
@@ -133,6 +132,10 @@ fi
 # read each row from $file_name and process
 # Citation: TLCL Page 414
 
+# Arrays to store the averages and medians in
+declare -a averages
+declare -a medians
+current_row=0
 
 while read row_string; do  # row_string is the string form
 	i=0
@@ -141,18 +144,45 @@ while read row_string; do  # row_string is the string form
 	declare -a row_values # array to store the actual values
 	for j in $row_no_tabs; do
 		row_values[i]=$j
-		echo ${row_values[i]\n}
+		# echo ${row_values[i]\n}
+		row_sum=$(($row_sum + $j))
 		let i++
 	done
-	
+	# echo "row_sum: $row_sum"
+
 	# Sort the array for this row
 	# Citation: Page 484 of TLCL
-	row_sorted=($(for k in "${row_values[@]}"; do echo $k; done | sort))
-	echo "Sorted array: ${row_sorted[@]}"
-	echo "Next row...\n"
-	#let i++
-	#row_sum=$(($row_sum + i))
-	#echo "$row_sum"
+	row_sorted=($(for k in "${row_values[@]}"; do echo $k; done | sort -n))
+	echo "Sorted array: ${row_sorted[@]}" # TODO: COMMENT OUT AND/OR DELETE
+	
+	# Calculate the number of values in the row
+	num_values=${#row_sorted[@]}  # size of the array. Cite: Pg 483 TLCL
+	# echo "num_values: $num_values"
+	
+	# Calculate the average for this row
+	row_average=$(( $row_sum / $num_values ))
+	row_remainder=$(( $row_sum % $num_values ))
+
+	# If we have a decimal value greater than or equal to .5, round up to next integer	
+	if [[ $(( $row_remainder * 2 )) -ge $num_values ]] ; then
+		let row_average++
+	fi
+	averages[current_row]=$row_average
+	# echo "row_average: $row_average"
+	# echo "Average calculated and stored: ${averages[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
+
+	# Median is middle value. $num_values / 2 gets us correct index if odd 
+	# (e.g. 9/2 = 4.5 = 4 in integer math, which is 5th value in array)
+	# If $num_values is even, it's the same because the greater of 2 middle values is the one with the higher index
+	# (e.g. 12/2 = 6, which is 7th array element and is greater than 6th)
+	middle=$(( $num_values / 2 ))
+	# echo "middle: $middle"
+	row_median=${row_sorted[middle]}
+	medians[current_row]=$row_median
+	# echo "Median calculated and stored: ${medians[current_row]}" # TODO: COMMENT OUT AND/OR DELETE
+
+	# echo "Next row..." # TODO: COMMENT OUT AND/OR DELETE
+	let current_row++
 done < $file_name
 
 # echo "$row\n"
