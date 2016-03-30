@@ -48,8 +48,7 @@ enum room_type { START_ROOM=0, END_ROOM=1, MID_ROOM=2 };
 struct Room {
 	char name[MAX_NAME_LEN];           // a name from the ROOM_NAMES[] array
 	int connections;         // Tally of actual number of connections
-	// struct Room * neighbors[MAX_CONNECTIONS]; // pointer to all its neighbors
-	// TODO: Make an array of strings to store the names of neighbors
+	char conn_names[MAX_CONNECTIONS][MAX_NAME_LEN]; // array of strings
 	enum room_type type;
 	int connected_matrix[MAX_ROOMS]; // 1=connected, 0=not
 };
@@ -284,25 +283,33 @@ void read_from_file(struct Room rooms[], int size) {
 			int buff_size = 250;
 			char line[buff_size];
 			char word_1[20];
-			char dump[buff_size];
+			char contents[buff_size];
 			int conn_number;
 			
 			rooms[i].connections = 0; // need to set this to 0 to be safe
+			int n = 0; // TODO: temp debug thing -- DELETE ME
 
 			while(fgets(line, buff_size - 1, room_file)) {
 				// Cite: sscanf basics www.cplusplus.com/reference/cstdio/sscanf
 
 
-				// Read the name from file into struct
+				// If the line is the ROOM NAME, read name from file into struct
 				if(strstr(line, "ROOM NAME") != NULL) {
 					sscanf(line, "ROOM NAME: %19[ a-zA-Z']s", rooms[i].name);
 					printf("rooms[%d].name=%s\n", i, rooms[i].name);
 				}
+
 				// If line is a CONNECTION line, increment .connections and read
 				// the name of connection to the array of connection strings
 				else if (strstr(line, "CONNECTION") != NULL) {
-					sscanf(line, "CONNECTION %d: %19[ a-zA-Z']s", &conn_number, dump);
-					printf("Connection %d: %s", conn_number, dump);
+					// Read up to 19 characters into contents[] and copy into struct arr
+					sscanf(line, "CONNECTION %d: %19[ a-zA-Z']s", &conn_number, contents);
+					char * conn_name = rooms[i].conn_names[n++];
+					strcpy(conn_name, contents);
+					printf("Connection %d: %s", conn_number, contents);
+
+					//dynArr[]
+					//rooms[i].connections++;
 				}
 
 				// Read the type and store into struct
