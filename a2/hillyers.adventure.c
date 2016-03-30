@@ -25,11 +25,12 @@
 #define MAX_CONNECTIONS 6
 #define MAX_ROOMS 7
 #define TOTAL_ROOM_NAMES 10
+#define MAX_NAME_LEN 20
 
 const char *USERNAME = "hillyers";
 const char *ROOM_NAMES[] = {
-	"Hell's Kitchen"
-	,"Manhattan"
+	  "Hell's Kitchen"
+	, "Manhattan"
 	, "Lincoln Tunnel"
 	, "SOHO"
 	, "Brooklyn Bridge"
@@ -45,9 +46,10 @@ enum room_type { START_ROOM=0, END_ROOM=1, MID_ROOM=2 };
 
 /* Structs */
 struct Room {
-	char name[40];           // a name from the ROOM_NAMES[] array
+	char name[MAX_NAME_LEN];           // a name from the ROOM_NAMES[] array
 	int connections;         // Tally of actual number of connections
-	struct Room * neighbors[MAX_CONNECTIONS]; // pointer to all its neighbors
+	// struct Room * neighbors[MAX_CONNECTIONS]; // pointer to all its neighbors
+	// TODO: Make an array of strings to store the names of neighbors
 	enum room_type type;
 	int connected_matrix[MAX_ROOMS]; // 1=connected, 0=not
 };
@@ -217,12 +219,10 @@ void write_to_file(struct Room rooms[], int size) {
 	// http://linux.die.net/man/3chdir
 	chdir(directory);
 
-	// For each Room in the array, write the data:
+	// For each Room in the array, write the data
 	for (i = 0; i < size; i++) {
-		FILE * room_file;
-		
 		// Open the file for writing, then write each section per specification
-		room_file = fopen (rooms[i].name, "w");
+		FILE * room_file = fopen (rooms[i].name, "w");
 		fprintf(room_file, "ROOM NAME: %s\n", rooms[i].name);
 		
 		// Loop through the connected_matrix to get strings to write
@@ -277,30 +277,44 @@ void read_from_file(struct Room rooms[], int size) {
 			if (strcmp(entry->d_name, ".") == 0 
 				|| strcmp(entry->d_name, "..") == 0) {
 				continue; 
-			}
+			} // end-if
 
-			// Open the current file
-			FILE * room_file;
-		
-			// Open the file for reading, then read in each part of struct
-			room_file = fopen (entry->d_name, "r");
+			// Open the current file for reading, then read in each part of struct
+			FILE * room_file = fopen(entry->d_name, "r");
+			int buff_size = 250;
+			char line[buff_size];
+			char word_1[20];
+			char dump[buff_size];
+			int conn_number;
+			
+			rooms[i].connections = 0; // need to set this to 0 to be safe
+
+			while(fgets(line, buff_size - 1, room_file)) {
+				// Cite: sscanf basics www.cplusplus.com/reference/cstdio/sscanf
 
 
-			strcpy(rooms[i].name, entry->d_name);
-			printf("%s\n", rooms[i].name);
-			// Read the name from file into struct
+				// Read the name from file into struct
+				if(strstr(line, "ROOM NAME") != NULL) {
+					sscanf(line, "ROOM NAME: %19[ a-zA-Z']s", rooms[i].name);
+					printf("rooms[%d].name=%s\n", i, rooms[i].name);
+				}
+				// If line is a CONNECTION line, increment .connections and read
+				// the name of connection to the array of connection strings
+				else if (strstr(line, "CONNECTION") != NULL) {
+					sscanf(line, "CONNECTION %d: %19[ a-zA-Z']s", &conn_number, dump);
+					printf("Connection %d: %s", conn_number, dump);
+				}
 
-			// While next line is a CONNECTION line, increment .connections and read
-			// the name of connection to the array of connection strings
+				// Read the type and store into struct
+				
+			} // end while fgets
 
-			// Read the type and store into struct
-
+			// Close file, move to next element of array
 			i++;
-
 			fclose(room_file);
-		}
+		} // end while readdir
 		closedir(dir);
-	}
+	} // end if read worked
 	else {
 		// Could not open directory
 		perror ("");
@@ -322,8 +336,8 @@ char * get_directory_name() {
 
 	// Copy three parts of string into a string so we can make directory
 	// Cite: www.cplusplus.com/reference/cstdio/sprintf
-	int buffersize = strlen(USERNAME) + 20 + strlen(roomstr);
-	char* directory = malloc(sizeof(char) * buffersize); // 
+	int buff_size = strlen(USERNAME) + 20 + strlen(roomstr);
+	char* directory = malloc(sizeof(char) * buff_size); // 
 
 	sprintf(directory, "%s%s%d", USERNAME, roomstr, pid);
 	return directory;
