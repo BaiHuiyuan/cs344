@@ -257,7 +257,8 @@ void write_to_file(struct Room rooms[], int size) {
 * 
 * 
 *******************************************************************************/
-void read_from_file(struct Room * rooms, int size) {
+void read_from_file(struct Room rooms[], int size) {
+	int i = 0;
 	char * directory = get_directory_name();
 	chdir(directory);
 
@@ -270,21 +271,33 @@ void read_from_file(struct Room * rooms, int size) {
 
 	// We've already changed into the directory we want, so just open cwd
 	if ((dir = opendir (".")) != NULL) {
-		// 
-		while ((entry = readdir(dir)) != NULL) {
+		// get all file names until rooms[] is filled with data
+		while ((entry = readdir(dir)) != NULL && i < size) {
+			// Skip entry if == "." or ".." directory (current or parent)
 			if (strcmp(entry->d_name, ".") == 0 
 				|| strcmp(entry->d_name, "..") == 0) {
-				continue;
+				continue; 
 			}
-			else
-				printf("%s\n", entry->d_name);
-			
+
+			// Open the current file
+			FILE * room_file;
+		
+			// Open the file for reading, then read in each part of struct
+			room_file = fopen (entry->d_name, "r");
+
+
+			strcpy(rooms[i].name, entry->d_name);
+			printf("%s\n", rooms[i].name);
 			// Read the name from file into struct
 
 			// While next line is a CONNECTION line, increment .connections and read
 			// the name of connection to the array of connection strings
 
 			// Read the type and store into struct
+
+			i++;
+
+			fclose(room_file);
 		}
 		closedir(dir);
 	}
