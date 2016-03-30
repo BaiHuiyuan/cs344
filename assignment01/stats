@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # Program 1: Stats
+# Author: Shawn S Hillyer
+# OSU CS-344-400
+# Date: 3/26/2016
 # Usage:
 # stats { -rows | -cols } [input_file]
 

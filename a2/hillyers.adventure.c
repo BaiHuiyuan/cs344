@@ -10,6 +10,7 @@
 *******************************************************************************/
 
 /* Includes */
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +60,8 @@ void swap(int arr[], int i, int j);
 void generate_connections(struct Room rooms[], int size);
 void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
+
+
 /*******************************************************************************
 * generate_rooms()
 * Create 7 different Room structs, one room per file, in a directory called
@@ -126,11 +129,6 @@ void generate_connections(struct Room rooms[], int size) {
 
 		// While we still need to make connections, try to make more
 		while (rooms[i].connections < MIN_CONNECTIONS + extra) {
-//TODO: DELETE COMMENTS IF BUG IS TRULY GONE
-			// Make sure we haven't maxed out connections before attempting 
-			// if (all_rooms_max(rooms, size))
-			// 	return;
-// END DELETE BLOCK
 			rand_indx = rand() % size;
 			// Try to connect to random nodes until it succeeds
 			do {
@@ -142,15 +140,6 @@ void generate_connections(struct Room rooms[], int size) {
 	return;
 }
 
-//TODO: DELETE COMMENTS IF BUG IS TRULY GONE
-// int all_rooms_max(struct Room rooms[], int size) {
-// 	int i;
-// 	for (i = 0; i < size; i++) {
-// 		if (rooms[i].connections < MAX_CONNECTIONS)
-// 			return 0;
-// 	}
-// 	return 1;
-// }
 
 /*******************************************************************************
 * connect_rooms()
@@ -211,17 +200,6 @@ void swap(int arr[], int i, int j) {
 
 
 /*******************************************************************************
-* rand_int_in_range()
-* Returns a random integer in the range [min..max] inclusive
-* 
-* 
-*******************************************************************************/
-// int rand_int_in_range(int min, int max) {
-
-// 	return (rand() % (max - min + 1) ) + min;
-// }
-
-/*******************************************************************************
 * write_to_file()
 * 
 * 
@@ -266,7 +244,8 @@ void write_to_file(struct Room rooms[], int size) {
 			case 2: fprintf(room_file, "MID_ROOM\n"); 
 					break;
 		}
-		fprintf(room_file, "\n");
+		// close the file
+		fclose(room_file);
 	}
 
 	chdir(".."); // Go back up a directory
@@ -281,14 +260,40 @@ void write_to_file(struct Room rooms[], int size) {
 void read_from_file(struct Room * rooms, int size) {
 	char * directory = get_directory_name();
 	chdir(directory);
+
 	// Get a list of all the files
+	// Cite: stackoverflow.com/questions/612097, 
+	// pubs.opengroup.org/onlinepubs/007908775/xsh/dirent.h.html
 
-	// Read the name from file into struct
+	DIR *dir;
+	struct dirent *entry;
 
-	// While next line is a CONNECTION line, increment .connections and read
-	// the name of connection to the array of connection strings
+	// We've already changed into the directory we want, so just open cwd
+	if ((dir = opendir (".")) != NULL) {
+		// 
+		while ((entry = readdir(dir)) != NULL) {
+			if (strcmp(entry->d_name, ".") == 0 
+				|| strcmp(entry->d_name, "..") == 0) {
+				continue;
+			}
+			else
+				printf("%s\n", entry->d_name);
+			
+			// Read the name from file into struct
 
-	// Read the type and store into struct
+			// While next line is a CONNECTION line, increment .connections and read
+			// the name of connection to the array of connection strings
+
+			// Read the type and store into struct
+		}
+		closedir(dir);
+	}
+	else {
+		// Could not open directory
+		perror ("");
+		return;
+	}
+
 }
 
 
