@@ -61,7 +61,7 @@ void swap(int arr[], int i, int j);
 void generate_connections(struct Room rooms[], int size);
 void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
-
+void print_rooms(struct Room rooms[], int size);
 
 /*******************************************************************************
 * generate_rooms()
@@ -236,11 +236,11 @@ void write_to_file(struct Room rooms[], int size) {
 		fprintf(room_file, "ROOM TYPE: ");
 		int type = rooms[i].type;
 		switch (type) {
-			case 0: fprintf(room_file, "START_ROOM\n"); 
+			case START_ROOM: fprintf(room_file, "START_ROOM\n"); 
 					break;
-			case 1: fprintf(room_file, "END_ROOM\n"); 
+			case END_ROOM: fprintf(room_file, "END_ROOM\n"); 
 					break;
-			case 2: fprintf(room_file, "MID_ROOM\n"); 
+			case MID_ROOM: fprintf(room_file, "MID_ROOM\n"); 
 					break;
 		}
 		// close the file
@@ -261,73 +261,85 @@ void read_from_file(struct Room rooms[], int size) {
 	char * directory = get_directory_name();
 	chdir(directory);
 
-	// Get a list of all the files
+	// Get a list of all the files using opendir()
 	// Cite: stackoverflow.com/questions/612097, 
-	// pubs.opengroup.org/onlinepubs/007908775/xsh/dirent.h.html
+	// Cite: pubs.opengroup.org/onlinepubs/007908775/xsh/dirent.h.html
 
 	DIR *dir;
 	struct dirent *entry;
 
 	// We've already changed into the directory we want, so just open cwd
 	if ((dir = opendir (".")) != NULL) {
-		// get all file names until rooms[] is filled with data
+		// While there are files in the directory, get & process next entry
+		// Also ends loop if we read too many files (shouldn't happen!)
 		while ((entry = readdir(dir)) != NULL && i < size) {
-			// Skip entry if == "." or ".." directory (current or parent)
+			// Skip entry if filename is "." or ".." (current or parent directory)
 			if (strcmp(entry->d_name, ".") == 0 
 				|| strcmp(entry->d_name, "..") == 0) {
 				continue; 
-			} // end-if
+			}
 
 			// Open the current file for reading, then read in each part of struct
 			FILE * room_file = fopen(entry->d_name, "r");
 			int buff_size = 250;
 			char line[buff_size];
 			char word_1[20];
-			char contents[buff_size];
-			int conn_number;
+			char contents[buff_size]; // used to store name of connections/type
+			int conn_number; // Not really using, just dmping from sscanf
+			int n = 0;
 			
-			rooms[i].connections = 0; // need to set this to 0 to be safe
-			int n = 0; // TODO: temp debug thing -- DELETE ME
+			rooms[i].connections = 0; // init before entering next loop
 
+			// While we can read lines from the file, parse and fill rooms[i] struct
+			// Cite: sscanf basics: www.cplusplus.com/reference/cstdio/sscanf
 			while(fgets(line, buff_size - 1, room_file)) {
-				// Cite: sscanf basics www.cplusplus.com/reference/cstdio/sscanf
-
-
 				// If the line is the ROOM NAME, read name from file into struct
 				if(strstr(line, "ROOM NAME") != NULL) {
 					sscanf(line, "ROOM NAME: %19[ a-zA-Z']s", rooms[i].name);
-					printf("rooms[%d].name=%s\n", i, rooms[i].name);
+					// printf("rooms[%d].name=%s\n", i, rooms[i].name);
 				}
 
 				// If line is a CONNECTION line, increment .connections and read
 				// the name of connection to the array of connection strings
 				else if (strstr(line, "CONNECTION") != NULL) {
 					// Read up to 19 characters into contents[] and copy into struct arr
+					// This saves room for the null byte. 
 					sscanf(line, "CONNECTION %d: %19[ a-zA-Z']s", &conn_number, contents);
-					char * conn_name = rooms[i].conn_names[n++];
+					char * conn_name = rooms[i].conn_names[n++]; // readability purposes
 					strcpy(conn_name, contents);
-					printf("Connection %d: %s", conn_number, contents);
-
-					//dynArr[]
-					//rooms[i].connections++;
+					rooms[i].connections++;
 				}
 
-				// Read the type and store into struct
-				
+				// If line is ROOM TYPE line, parse the type and set type as appropriate
+				else if (strstr(line, "ROOM TYPE") != NULL) {
+					sscanf(line, "ROOM TYPE: %s", contents);
+					if (strstr(contents, "MID_ROOM") != NULL) {
+						rooms[i].type = MID_ROOM;
+					}
+					else if (strstr(contents, "START_ROOM") != NULL) {
+						rooms[i].type = START_ROOM;
+					}
+					else if (strstr(contents, "END_ROOM") != NULL) {
+						rooms[i].type = END_ROOM;
+					}
+					else {
+						printf("This is bad!!");
+						return;
+					}					
+				}
 			} // end while fgets
-
 			// Close file, move to next element of array
-			i++;
 			fclose(room_file);
+			i++;
 		} // end while readdir
 		closedir(dir);
 	} // end if read worked
+
 	else {
 		// Could not open directory
-		perror ("");
+		perror("");
 		return;
 	}
-
 }
 
 
@@ -362,6 +374,20 @@ void play_game() {
 	// Allocate array of Room structs to read data back in
 	struct Room * rooms = malloc (sizeof(struct Room) * MAX_ROOMS);
 	read_from_file(rooms, MAX_ROOMS);
+	print_rooms(rooms, MAX_ROOMS);
+}
+
+
+// TODO: Get rid of this debug funciton and related calls
+void print_rooms(struct Room rooms[], int size) {
+	int i, j;
+	for (i = 0; i < size; i++) {
+		printf("ROOM NAME: %s\n", rooms[i].name);
+		for (j = 0; j < rooms[i].connections; j++) {
+			printf("CONNECTION %d: %s\n", (j+1), rooms[i].conn_names[j]);
+		}
+		printf("ROOM TYPE: %d\n\n", rooms[i].type);
+	}
 }
 
 
@@ -379,20 +405,8 @@ int main(int argc, char const *argv[]) {
 	// Generate rooms
 	generate_rooms(rooms, MAX_ROOMS);
 
-	// TODO: Debug line. Printing the struct outside of the loop
-	// int i, j;
-	// for (i = 0; i < MAX_ROOMS; i++) {
-	// 	// printf("rooms[%d]: .connections=%d\t .name=%s\t .type=%d\n", i, rooms[i].connections, rooms[i].name, rooms[i].type);
-	// 	// printf("Connected to: ");
-	// 	for (j = 0; j < MAX_ROOMS; j++) {
-	// 		printf("%d ", rooms[i].connected_matrix[j]);
-	// 	}
-	// 	printf("\n");
-	// }
-
 	// Initiate player input loop / main 'game' logic
 	play_game();
-
 
 	// Game loop ends when exit found, return 0 for success
 	return 0;
