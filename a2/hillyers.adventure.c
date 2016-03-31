@@ -1,6 +1,5 @@
-// hillyers.adventure.c
-
 /*******************************************************************************
+* File:         hillyers.adventure.c
 * Author:       Shawn S Hillyer
 * Date:         April 24, 2016
 * Course:       OSU CSS 344-400: Assignment 02
@@ -55,7 +54,7 @@ struct Room {
 };
 
 /* Forward-declarations */
-struct Room;
+// struct Room;
 void shuffle_array(int arr[], int n);
 void swap(int arr[], int i, int j);
 void generate_connections(struct Room rooms[], int size);
@@ -64,7 +63,7 @@ char * get_directory_name();
 void print_rooms(struct Room rooms[], int size);
 void print_location(struct Room rooms[], int i);
 int is_connected(struct Room rooms[], int size, int i, char user_string[]);
-void print_congratulations(int steps);
+void print_congratulations(int steps, char ** path);
 int get_new_location(struct Room rooms[], int size, char user_string[]);
 
 
@@ -377,7 +376,7 @@ void play_game() {
 	// Allocate array of Room structs, read the data from file structure back in
 	struct Room * rooms = malloc (sizeof(struct Room) * MAX_ROOMS);
 	read_from_file(rooms, MAX_ROOMS);
-	print_rooms(rooms, MAX_ROOMS); // TODO: Delete debug statement
+	// print_rooms(rooms, MAX_ROOMS); // Debug statement
 
 	// Init win condition bool, setup lookup table for Room names into index
 	int player_has_won = 0; // 1 = true, 0 = false
@@ -385,9 +384,18 @@ void play_game() {
 	int start_index = -1;
 	int end_index = -1;
 	int current_location;   // Index of current room as stored in rooms[]
+	
+	// Create and initialize Array of strings to store the path user takes in
+	// Cite: stackoverflow.com/questions/5935933 (for dynamic array allocation)
+	char ** path_list;
+	int path_list_size = MAX_ROOMS * 2; // just a default starting size
+	path_list = malloc(path_list_size * sizeof(char *));
+	int i;
+	for (i = 0; i < path_list_size; i++) {
+		path_list[i] = malloc(MAX_NAME_LEN * sizeof(char));
+	}
 
 	// Search for the START_ and END_ROOM indices to start/end game loop
-	int i = 0;
 	for (i = 0; i < MAX_ROOMS; i++) {
 		if(rooms[i].type == START_ROOM)
 			start_index = i;
@@ -414,11 +422,18 @@ void play_game() {
 
 		// If input is in connected names array for current room
 		if (is_connected(rooms, MAX_ROOMS, current_location, user_string) == 1) {
-			// increment steps taken by 1
-			steps_taken++;
-			
-			// add new location to path list
-			
+			// Make sure path_list isn't full - realloc if it is
+			if (steps_taken == path_list_size) {
+				path_list_size *= 2;
+				path_list = realloc(path_list, path_list_size * sizeof(char *));
+				int k;
+				for (k = steps_taken; k < path_list_size; k++) {
+					path_list[k] = malloc(MAX_NAME_LEN * sizeof(char));
+				}	
+			}
+
+			// add new location to path list, increment steps taken by 1
+			strcpy(path_list[steps_taken++], user_string);
 
 			// update current_location to index of new room
 			current_location = get_new_location(rooms, MAX_ROOMS, user_string);
@@ -426,7 +441,7 @@ void play_game() {
 			// Check to see if player has won
 			if (current_location == end_index) {
 				// print congrats message, steps, path
-				print_congratulations(steps_taken);
+				print_congratulations(steps_taken, path_list);
 				// Set win condition to true -- we end up back in main
 				player_has_won = 1;
 			}
@@ -439,6 +454,11 @@ void play_game() {
 	// Free the rooms array
 	free(rooms);
 	free(directory); // w as dynamically allocated in get_directory_name
+	int k;
+	for (k = 0; k < path_list_size; k++) {
+		free(path_list[k]);
+	}
+	free(path_list);
 }
 
 
@@ -496,14 +516,14 @@ int get_new_location(struct Room rooms[], int size, char user_string[]) {
 * print_congratulations()
 * Prints congrats message including number of steps and the path to victory
 *******************************************************************************/
-void print_congratulations(int steps) {
+void print_congratulations(int steps, char ** path) {
 	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
 	printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", steps);
 	
 	// Print out the list of steps taken, one per line
 	int i;
 	for (i = 0; i < steps; i++) {
-		printf("\n");
+		printf("%s\n", path[i]);
 	}
 }
 
