@@ -63,7 +63,7 @@ void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
 void print_rooms(struct Room rooms[], int size);
 void print_location(struct Room rooms[], int i);
-
+int is_connected(struct Room rooms[], int size, int i, char user_string[]);
 
 /*******************************************************************************
 * generate_rooms()
@@ -407,28 +407,25 @@ void play_game() {
 		printf("WHERE TO? >");
 		
 		// read input then validate it
-		if (fgets(user_string, sizeof(user_string), stdin) != NULL) {
-			// if (user_string[0] != '\n' && (*string_end == '\n' || *string_end == '\0')) {
-			// 	success = 1;
-			// }
-			// else {
-			// 	printf("Invalid input entered");
-			// 	success = false;
-			// }
-			printf("user_string: %s\n", user_string);
-		}
+		fgets(user_string, sizeof(user_string), stdin);
+		printf("\n");
 
 		// check user input against connections array
-
+		if (is_connected(rooms, MAX_ROOMS, current_location, user_string) == 1) {
 			// If input in connected names array
+			printf("Connected\n");
 				// increment steps taken by 1
 				// add new location to path list
 				// update current_location to index of new room
 				// if current_location == end_index
 					// print congrats message, steps, list
+		}
+		else {
+			printf("Not connected\n");
 			// else if input invalid
 				// print error message and proper spacing
 				// break (implicitly) and try again
+		}
 	}
 }
 
@@ -452,6 +449,19 @@ void print_location(struct Room rooms[], int i) {
 	printf("%s.\n", rooms[i].conn_names[j]);
 }
 
+
+// return 1 if connected, 0 if not
+int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
+	int j;
+	for (j = 0; j < rooms[i].connections; j++) {
+		printf("Comparing: %s to %s", rooms[i].conn_names[j], user_string);
+		if (strcmp(rooms[i].conn_names[j], user_string) == 0)
+			return 1;
+	}
+
+	// If not found, return false
+	return 0;
+}
 
 // TODO: Get rid of this debug funciton and related calls
 void print_rooms(struct Room rooms[], int size) {
