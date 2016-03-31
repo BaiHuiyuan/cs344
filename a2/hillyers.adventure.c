@@ -62,6 +62,8 @@ void generate_connections(struct Room rooms[], int size);
 void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
 void print_rooms(struct Room rooms[], int size);
+void print_location(struct Room rooms[], int i);
+
 
 /*******************************************************************************
 * generate_rooms()
@@ -371,10 +373,83 @@ char * get_directory_name() {
 void play_game() {
 	char * directory = get_directory_name();
 
-	// Allocate array of Room structs to read data back in
+	// Allocate array of Room structs, read the data from file structure back in
 	struct Room * rooms = malloc (sizeof(struct Room) * MAX_ROOMS);
 	read_from_file(rooms, MAX_ROOMS);
-	print_rooms(rooms, MAX_ROOMS);
+	print_rooms(rooms, MAX_ROOMS); // TODO: Delete debug statement
+
+	// Init win condition bool, setup lookup table for Room names into index
+	int player_has_won = 0; // 1 = true, 0 = false
+	int start_index = -1;
+	int end_index = -1;
+	int current_location;   // Index of current room as stored in rooms[]
+
+	// Search for the START_ and END_ROOM indices to start/end game loop
+	int i = 0;
+	for (i = 0; i < MAX_ROOMS; i++) {
+		if(rooms[i].type == START_ROOM)
+			start_index = i;
+		if(rooms[i].type == END_ROOM)
+			end_index = i;
+	}
+	current_location = start_index;
+
+	// Variables for user input of strings
+	char user_string[MAX_NAME_LEN];
+	char *string_end; // points to end of the string - used to validate input
+	int success = 0; // set to true if the input included only valid character types
+
+
+	// main game loop
+	while(!player_has_won) {
+		// Print current location and prompt user for input
+		print_location(rooms, current_location);
+		printf("WHERE TO? >");
+		
+		// read input then validate it
+		if (fgets(user_string, sizeof(user_string), stdin) != NULL) {
+			// if (user_string[0] != '\n' && (*string_end == '\n' || *string_end == '\0')) {
+			// 	success = 1;
+			// }
+			// else {
+			// 	printf("Invalid input entered");
+			// 	success = false;
+			// }
+			printf("user_string: %s\n", user_string);
+		}
+
+		// check user input against connections array
+
+			// If input in connected names array
+				// increment steps taken by 1
+				// add new location to path list
+				// update current_location to index of new room
+				// if current_location == end_index
+					// print congrats message, steps, list
+			// else if input invalid
+				// print error message and proper spacing
+				// break (implicitly) and try again
+	}
+}
+
+/*******************************************************************************
+* ()
+* 
+* 
+* 
+*******************************************************************************/
+void print_location(struct Room rooms[], int i) {
+	printf("CURRENT LOCATION: %s\n", rooms[i].name);
+	printf("POSSIBLE CONNECTIONS: ");
+	
+	// Print each connection separated by comma except last
+	int j;
+	for (j = 0; j < rooms[i].connections - 1; j++) {
+		printf("%s, ", rooms[i].conn_names[j]);
+	}
+
+	// Print last connection, period, newline
+	printf("%s.\n", rooms[i].conn_names[j]);
 }
 
 
@@ -389,6 +464,8 @@ void print_rooms(struct Room rooms[], int size) {
 		printf("ROOM TYPE: %d\n\n", rooms[i].type);
 	}
 }
+
+
 
 
 /*******************************************************************************
