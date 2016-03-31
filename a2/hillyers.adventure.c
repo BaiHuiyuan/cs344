@@ -396,7 +396,6 @@ void play_game() {
 
 	// Variables for user input of strings
 	char user_string[MAX_NAME_LEN];
-	char *string_end; // points to end of the string - used to validate input
 	int success = 0; // set to true if the input included only valid character types
 
 
@@ -406,25 +405,25 @@ void play_game() {
 		print_location(rooms, current_location);
 		printf("WHERE TO? >");
 		
-		// read input then validate it
+		// read input, trim off the \n, then see if it is in the array of connected
 		fgets(user_string, sizeof(user_string), stdin);
+		user_string[strlen(user_string)-1] = '\0';
+
 		printf("\n");
 
-		// check user input against connections array
+		// If input is in connected names array for current room
 		if (is_connected(rooms, MAX_ROOMS, current_location, user_string) == 1) {
-			// If input in connected names array
-			printf("Connected\n");
-				// increment steps taken by 1
-				// add new location to path list
-				// update current_location to index of new room
-				// if current_location == end_index
-					// print congrats message, steps, list
+			// increment steps taken by 1
+			// add new location to path list
+			// update current_location to index of new room
+			// if current_location == end_index
+				// print congrats message, steps, list
 		}
+		// else if input is not in connected rooms array
 		else {
-			printf("Not connected\n");
-			// else if input invalid
-				// print error message and proper spacing
-				// break (implicitly) and try again
+			// print error message and proper spacing
+			printf("HUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
+			// break (implicitly) and try again
 		}
 	}
 }
@@ -454,7 +453,7 @@ void print_location(struct Room rooms[], int i) {
 int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
 	int j;
 	for (j = 0; j < rooms[i].connections; j++) {
-		printf("Comparing: %s to %s", rooms[i].conn_names[j], user_string);
+//		printf("Comparing: %s (Length: %d) to %s (length: %d)", rooms[i].conn_names[j], strlen(rooms[i].conn_names[j]), user_string, strlen(user_string));
 		if (strcmp(rooms[i].conn_names[j], user_string) == 0)
 			return 1;
 	}
