@@ -5,8 +5,9 @@
 * Date:         April 24, 2016
 * Course:       OSU CSS 344-400: Assignment 02
 * Description:  
-*
-*
+* Creates a series of files that hold descriptions of "rooms" and how they are
+* connected; offer to player an interface for playing game using generated
+* rooms; exit and display path taken by player
 *******************************************************************************/
 
 /* Includes */
@@ -18,7 +19,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h> // For getpid()
+#include <unistd.h>
 
 /* Constants */
 #define MIN_CONNECTIONS 3
@@ -46,8 +47,8 @@ enum room_type { START_ROOM=0, END_ROOM=1, MID_ROOM=2 };
 
 /* Structs */
 struct Room {
-	char name[MAX_NAME_LEN];           // a name from the ROOM_NAMES[] array
-	int connections;         // Tally of actual number of connections
+	char name[MAX_NAME_LEN];         // a name from the ROOM_NAMES[] array
+	int connections;                 // Tally of actual number of connections
 	char conn_names[MAX_CONNECTIONS][MAX_NAME_LEN]; // array of strings
 	enum room_type type;
 	int connected_matrix[MAX_ROOMS]; // 1=connected, 0=not
@@ -57,7 +58,6 @@ struct Room {
 struct Room;
 void shuffle_array(int arr[], int n);
 void swap(int arr[], int i, int j);
-// int rand_int_in_range(int min, int max);
 void generate_connections(struct Room rooms[], int size);
 void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
@@ -66,6 +66,7 @@ void print_location(struct Room rooms[], int i);
 int is_connected(struct Room rooms[], int size, int i, char user_string[]);
 void print_congratulations(int steps);
 int get_new_location(struct Room rooms[], int size, char user_string[]);
+
 
 /*******************************************************************************
 * generate_rooms()
@@ -105,10 +106,10 @@ void generate_rooms(struct Room rooms[], int size) {
 		rooms[i].type = current_type;
 	}
 
+	// Connect the rooms then write the rooms to files
 	generate_connections(rooms, size);
 	write_to_file(rooms, size);
 }
-
 
 
 /*******************************************************************************
@@ -132,10 +133,10 @@ void generate_connections(struct Room rooms[], int size) {
 		// leaving no nodes with only 3; 0 to 2 tends to not
 		extra = rand() % 2; // rand_int_in_range(0, 3);
 
-		// While we still need to make connections, try to make more
+		// connect rooms until we've made requisite number of connections
 		while (rooms[i].connections < MIN_CONNECTIONS + extra) {
+			// Try to connect to random node; increment until it succeeds
 			rand_indx = rand() % size;
-			// Try to connect to random nodes until it succeeds
 			do {
 				// Increment forward if random node failed to connect
 				rand_indx = (++rand_indx) % size;
@@ -150,22 +151,17 @@ void generate_connections(struct Room rooms[], int size) {
 * connect_rooms()
 * Subroutine for generate_connections. Associates two rooms together by creating
 * a bidirectional linkage between the two rooms. 
+* Returns 0 if fails, 1 if succeeds
 *******************************************************************************/
 int connect_rooms(struct Room rooms[], int i, int j) {
-	if (i == j) {
-		// printf("Connect rooms[%d] to itself! Derp\n", i); // TODO delete debug statement
-		return 0; // cannot connect to self	
-	} 
-	// If already connected, return 0 (false)
-	else if (rooms[i].connected_matrix[j] == 1) {
-		// printf("Connect rooms[%d] to rooms[%d] but ALREADY CONNECTED\n", i, j); // TODO delete debug statement
+	// cannot connect to self, already connected, or either at max connections
+	if (   i == j
+		|| rooms[i].connected_matrix[j] == 1
+		|| rooms[j].connections == MAX_CONNECTIONS
+		|| rooms[i].connections == MAX_CONNECTIONS 
+		)
 		return 0;
-	} 
-	// else if target connection already at max connections return false
-	else if (rooms[j].connections == MAX_CONNECTIONS || rooms[i].connections == MAX_CONNECTIONS) {
-		// printf("Connect rooms[%d] to rooms[%d] but FULL.\n", i, j);
-		return 0;
-	}
+	// otherwise connect in both directions and return success 	
 	else {
 		rooms[i].connected_matrix[j] = 1;
 		rooms[j].connected_matrix[i] = 1;
@@ -179,7 +175,6 @@ int connect_rooms(struct Room rooms[], int i, int j) {
 /*******************************************************************************
 * shuffle_array()
 * Shuffles an array of values
-* 
 * cite: www.vogella.com/tutorials/JavaAlgorithmsShuffle/article.html
 *******************************************************************************/
 void shuffle_array(int arr[], int n) {
@@ -194,7 +189,7 @@ void shuffle_array(int arr[], int n) {
 
 /*******************************************************************************
 * swap()
-* Swaps two elements of an array
+* Swaps two elements of an array at indices i and j
 * cite: www.vogella.com/tutorials/JavaAlgorithmsShuffle/article.html
 *******************************************************************************/
 void swap(int arr[], int i, int j) {
@@ -206,9 +201,10 @@ void swap(int arr[], int i, int j) {
 
 /*******************************************************************************
 * write_to_file()
-* 
-* 
-* 
+* Create 7 different Room files, one room per file, in a directory called
+* <username>.rooms.<process id>
+* <username> is hardcoded (See constant USERNAME near header)
+* Data comes from an array of struct Room
 *******************************************************************************/
 void write_to_file(struct Room rooms[], int size) {
 	int i, j;
@@ -251,14 +247,16 @@ void write_to_file(struct Room rooms[], int size) {
 		fclose(room_file);
 	}
 
-	chdir(".."); // Go back up a directory
+	// Go back up a directory
+	chdir(".."); 
 }
 
+
 /*******************************************************************************
-* ()
-* 
-* 
-* 
+* read_from_file()
+* Parse all of the files in the directory into the struct Room
+* Opens the directory, then processes all of the files, parsing for the needed
+* data using sscanf after checking what data is on the line using strstr
 *******************************************************************************/
 void read_from_file(struct Room rooms[], int size) {
 	int i = 0;
@@ -344,14 +342,16 @@ void read_from_file(struct Room rooms[], int size) {
 		perror("");
 		return;
 	}
+
+	free(directory);
 }
 
 
 /*******************************************************************************
-* ()
-* 
-* 
-* 
+* get_directory_name()
+* Returns a pointer to a directory name string 
+* Format: <username>.rooms.<process id>
+* username is hardcoded per assignment specifications
 *******************************************************************************/
 char * get_directory_name() {
 	pid_t pid = getpid();
@@ -366,11 +366,10 @@ char * get_directory_name() {
 	return directory;
 }
 
+
 /*******************************************************************************
-* ()
-* 
-* 
-* 
+* play_game()
+* Main loop. Presents menu to user, gets input, and presents winning message
 *******************************************************************************/
 void play_game() {
 	char * directory = get_directory_name();
@@ -401,7 +400,6 @@ void play_game() {
 	char user_string[MAX_NAME_LEN];
 	int success = 0; // set to true if the input included only valid character types
 
-
 	// main game loop
 	while(!player_has_won) {
 		// Print current location and prompt user for input
@@ -429,7 +427,7 @@ void play_game() {
 			if (current_location == end_index) {
 				// print congrats message, steps, path
 				print_congratulations(steps_taken);
-				// Set win condition to true
+				// Set win condition to true -- we end up back in main
 				player_has_won = 1;
 			}
 		}
@@ -438,13 +436,16 @@ void play_game() {
 			printf("HUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
 		}
 	}
+	// Free the rooms array
+	free(rooms);
+	free(directory); // w as dynamically allocated in get_directory_name
 }
 
+
 /*******************************************************************************
-* ()
-* 
-* 
-* 
+* print_location()
+* Displays the information to player about the location they are in, passed in
+* as the argument, i, including the connection names
 *******************************************************************************/
 void print_location(struct Room rooms[], int i) {
 	printf("CURRENT LOCATION: %s\n", rooms[i].name);
@@ -461,7 +462,11 @@ void print_location(struct Room rooms[], int i) {
 }
 
 
-// return 1 if connected, 0 if not
+/*******************************************************************************
+* is_connected()
+* returns 1 if the room at index i is connected to a room with the name passed 
+* in by user_string; returns 0 if not
+*******************************************************************************/
 int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
 	int j;
 	for (j = 0; j < rooms[i].connections; j++) {
@@ -473,6 +478,11 @@ int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
 	return 0;
 }
 
+
+/*******************************************************************************
+* get_new_location()
+* returns index in rooms[] of the room with .name == user_string
+*******************************************************************************/
 int get_new_location(struct Room rooms[], int size, char user_string[]) {
 	int i;
 	for (i = 0; i < size; i++) {
@@ -481,7 +491,11 @@ int get_new_location(struct Room rooms[], int size, char user_string[]) {
 	}	
 }
 
-// print winning message
+
+/*******************************************************************************
+* print_congratulations()
+* Prints congrats message including number of steps and the path to victory
+*******************************************************************************/
 void print_congratulations(int steps) {
 	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
 	printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", steps);
@@ -494,7 +508,10 @@ void print_congratulations(int steps) {
 }
 
 
-// TODO: Get rid of this debug funciton and related calls
+/*******************************************************************************
+* print_rooms()
+* Used in debugging / playtesting / verifying rooms are deserialized properly.
+*******************************************************************************/
 void print_rooms(struct Room rooms[], int size) {
 	int i, j;
 	for (i = 0; i < size; i++) {
@@ -505,8 +522,6 @@ void print_rooms(struct Room rooms[], int size) {
 		printf("ROOM TYPE: %d\n\n", rooms[i].type);
 	}
 }
-
-
 
 
 /*******************************************************************************
@@ -526,6 +541,7 @@ int main(int argc, char const *argv[]) {
 	// Initiate player input loop / main 'game' logic
 	play_game();
 
-	// Game loop ends when exit found, return 0 for success
+	// Game loop ends when exit found, return 0 for success.
+	// Can verify with 'echo $?' that exit code is 0 from command line prompt
 	return 0;
 }
