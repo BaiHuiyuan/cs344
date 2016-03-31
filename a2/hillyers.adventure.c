@@ -64,6 +64,8 @@ char * get_directory_name();
 void print_rooms(struct Room rooms[], int size);
 void print_location(struct Room rooms[], int i);
 int is_connected(struct Room rooms[], int size, int i, char user_string[]);
+void print_congratulations(int steps);
+int get_new_location(struct Room rooms[], int size, char user_string[]);
 
 /*******************************************************************************
 * generate_rooms()
@@ -380,6 +382,7 @@ void play_game() {
 
 	// Init win condition bool, setup lookup table for Room names into index
 	int player_has_won = 0; // 1 = true, 0 = false
+	int steps_taken = 0;
 	int start_index = -1;
 	int end_index = -1;
 	int current_location;   // Index of current room as stored in rooms[]
@@ -414,16 +417,25 @@ void play_game() {
 		// If input is in connected names array for current room
 		if (is_connected(rooms, MAX_ROOMS, current_location, user_string) == 1) {
 			// increment steps taken by 1
+			steps_taken++;
+			
 			// add new location to path list
+			
+
 			// update current_location to index of new room
-			// if current_location == end_index
-				// print congrats message, steps, list
+			current_location = get_new_location(rooms, MAX_ROOMS, user_string);
+
+			// Check to see if player has won
+			if (current_location == end_index) {
+				// print congrats message, steps, path
+				print_congratulations(steps_taken);
+				// Set win condition to true
+				player_has_won = 1;
+			}
 		}
-		// else if input is not in connected rooms array
+		// else if input is not in connected rooms array print error message
 		else {
-			// print error message and proper spacing
 			printf("HUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
-			// break (implicitly) and try again
 		}
 	}
 }
@@ -453,7 +465,6 @@ void print_location(struct Room rooms[], int i) {
 int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
 	int j;
 	for (j = 0; j < rooms[i].connections; j++) {
-//		printf("Comparing: %s (Length: %d) to %s (length: %d)", rooms[i].conn_names[j], strlen(rooms[i].conn_names[j]), user_string, strlen(user_string));
 		if (strcmp(rooms[i].conn_names[j], user_string) == 0)
 			return 1;
 	}
@@ -461,6 +472,27 @@ int is_connected(struct Room rooms[], int size, int i, char user_string[]) {
 	// If not found, return false
 	return 0;
 }
+
+int get_new_location(struct Room rooms[], int size, char user_string[]) {
+	int i;
+	for (i = 0; i < size; i++) {
+		if (strcmp(rooms[i].name, user_string) == 0)
+			return i;
+	}	
+}
+
+// print winning message
+void print_congratulations(int steps) {
+	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
+	printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", steps);
+	
+	// Print out the list of steps taken, one per line
+	int i;
+	for (i = 0; i < steps; i++) {
+		printf("\n");
+	}
+}
+
 
 // TODO: Get rid of this debug funciton and related calls
 void print_rooms(struct Room rooms[], int size) {
