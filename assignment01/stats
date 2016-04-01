@@ -204,7 +204,7 @@ fi
 
 # TODO: TRAP handling: Handle interrupt, hangup, and term signals to remove temp files if stats program is terminated
 # Citation: Slide 42 of Lecture2 notes
-trap "rm -f *temp$pid; exit 1" INT HUP TERM
+trap "rm -f *temp$$; exit 1" INT HUP TERM
 
 # cleanup our temp file(s)
-rm -f *temp$pid
+rm -f *temp$$
