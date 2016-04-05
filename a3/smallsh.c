@@ -28,15 +28,24 @@
 void command_prompt();
 static void sigHandler(int sig);
 
+/* Externs */
+extern char **environ; // pointer to strings listing the environment variables
 
 void change_directory(char * dir) {
-	// If empty string passed in, go to the HOME path
-	if (strcmp(dir, "") == 0) {
-		dir = "HOME path directory";
+	// If empty string passed in, update to the HOME path
+	if (strcmp(dir, "") == 0 || dir == NULL) {
+		// Cite: TLPI Pg 127. Using getenv to lookup an environment var:
+		dir = getenv("HOME");
 	}
 	printf("Changing directory to:  %s\n", dir);
 
-	chdir(dir);
+	if(chdir(dir) == 0) {
+		// chdir was succesful
+		printf("changed directory to %s\n", dir);
+	} else {
+		printf("error changing to %s\n", dir);
+		// printf("error number: %s\n", errno);
+	}
 
 }
 
@@ -49,6 +58,7 @@ void exit_shell() {
 
 void command_prompt() {
 	// Start up signal handler
+	// Cite: TLPI Chapter 20, ~Page 401 and other examples
 	if (signal(SIGINT, sigHandler) == SIG_ERR) {
 		printf("SIG_ERR received\n");
 	}
@@ -66,23 +76,41 @@ void command_prompt() {
 		// DEBUG: Echo the input
 		printf("input: %s\n", input);
 
-		/* Parse the input  */
-		
-		int arg_count;
-
-		// Check for the built-in commands:
-		if (strcmp(input, "exit") == 0) {
-			exit_shell();
-		}
-		else if (strcmp(input, "cd") == 0) {
-			change_directory("");
-		}
-
+		/* Parse the input  */	
+		int arg_count = 0;
+		char * arguments[MAX_ARGS];
+		char * command;
 
 		// Ignore lines that start with # as comments
-		else if (input[0] == '#') {
+		if (input[0] == '#') {
 			continue;
 		}
+
+		command = strtok(input, " ");
+		while(arguments[arg_count] = strtok(NULL, " ")) {
+			printf("arguments[%d]: %s\n", arg_count, arguments[arg_count]);
+			// Add logic here to parse for arguments -- check if arguments[arg_count][0] == '-'
+			arg_count++;
+		}
+		printf("command = %s\n", command);
+
+		// Check for the built-in commands:
+		if (strcmp(command, "exit") == 0) {
+			exit_shell();
+		}
+
+		// If no-arguments 'cd' command
+		else if (strcmp(command, "cd") == 0) {
+			if (arg_count == 0)
+				change_directory("");
+			else
+				change_directory(arguments[0]);
+		}
+
+		// If cd with a directory passed
+		// else if (str)
+
+
 
 		// Else if only whitespace or a newline entered then just reprompt
 		else {
@@ -107,6 +135,8 @@ static void sigHandler(int sig) {
 
 int main(int argc, char const *argv[])
 {
+
+
 
 	command_prompt();
 	return 0;
