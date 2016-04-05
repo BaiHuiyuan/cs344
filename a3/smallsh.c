@@ -52,7 +52,7 @@ command_prompt() {
 		/* Parse the input  */
 		
 		int arg_count;
-		
+
 
 		if (strcmp(input, "exit") == 0) {
 			exit_shell();
@@ -63,10 +63,22 @@ command_prompt() {
 
 // Need to build a signal handler for SIGINT that does NOT terminate this process
 // but instead terminates the foreground process
+// Cite: tLPI Page 399
+
+static void
+sigHandler(int sig) {
+	printf("sigHandler called\n");
+	return;
+}
+
 
 int 
 main(int argc, char const *argv[])
 {
+	// Start up signal handler
+	// if (signal(SIGINT, sigHandler) == SIG_ERR) {
+	// 	errExit("signal");
+	// }
 	command_prompt();
 	return 0;
 }
