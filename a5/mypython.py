@@ -3,6 +3,10 @@
 # Assignmnet 5 - Python Exploration (32 points)
 # Completed: April 4, 2016
 # Date Due: May 30, 2016
+
+# NOTE: This script uses Python3 syntax for print(), execute using:
+# python3 mypython.py
+
 import random
 import string
 import fcntl
