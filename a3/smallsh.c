@@ -11,6 +11,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,13 +26,16 @@
 
 /* Forward declarations */
 void command_prompt();
-void exit_shell() {
+void 
+exit_shell() {
 	printf("Exiting...\n");
-	// Kill all processes / jobs
-	// terminate shell... how to kill self??
+	// Kill all child processes / jobs
+	// terminate smallsh itself by calling exit with success signal (0)
+	exit(0);
 }
 
-void command_prompt() {
+void 
+command_prompt() {
 	// support MAX_CHAR characters + 1 for null byte
 	char input[MAX_CHAR+1]; 
 	int repeat = 1;
@@ -45,7 +49,11 @@ void command_prompt() {
 		// DEBUG: Echo the input
 		printf("You input: %s\n", input);
 
-		// Parse the input:
+		/* Parse the input  */
+		
+		int arg_count;
+		
+
 		if (strcmp(input, "exit") == 0) {
 			exit_shell();
 		}
@@ -53,9 +61,11 @@ void command_prompt() {
 
 }
 
+// Need to build a signal handler for SIGINT that does NOT terminate this process
+// but instead terminates the foreground process
 
-
-int main(int argc, char const *argv[])
+int 
+main(int argc, char const *argv[])
 {
 	command_prompt();
 	return 0;
