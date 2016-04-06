@@ -37,7 +37,7 @@ void change_directory(char * dir) {
 	
 	// 	dir = getenv("HOME");
 	// }
-	printf("Changing directory to:  %s\n", dir);
+	// printf("Changing directory to:  %s\n", dir);
 
 	if(chdir(dir) == 0) {
 		// chdir was succesful
@@ -50,7 +50,7 @@ void change_directory(char * dir) {
 }
 
 void exit_shell() {
-	printf("Exiting...\n");
+	// printf("Exiting...\n");
 	// Kill all child processes / jobs
 	// terminate smallsh itself by calling exit with success signal (0)
 	exit(0);
@@ -68,6 +68,15 @@ void command_prompt() {
 	int repeat = 1;
 
 	while(repeat == 1) {
+		// When a bg process terminates, a message showing the process id and exit status 
+		// will be printed. You should check to see if any background processes completed
+		// just before you prompt for a new command and print the message then.
+		if (0 == 1 /* any background process completed */) {
+			printf("Some background process completed.\n");
+			// Use waitpid to check for any completed background processes
+			printf("PID %d terminated. Exit status: %d\n", 0, 0);
+		}
+
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
 		fgets(input, sizeof(input), stdin);
@@ -75,7 +84,7 @@ void command_prompt() {
 			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 
 		// DEBUG: Echo the input
-		printf("input: %s\n", input);
+		// printf("input: %s\n", input);
 
 		// Variables used in parsing input	
 		int arg_count = 0, 
@@ -168,18 +177,34 @@ void command_prompt() {
 			}
 
 			// status builtin:
-			/*  used to print the exit status of the last foreground command. If a command 
-			(either a foreground or backgroudn comand) is terminated by a signal, a message 
-			indicated which signal terminated the process will be printed. */
 			else if (strcmp(command, "status") == 0) {
 				printf("Status...\n");
+				// Get the exit status of the last foreground command
+
+				// Send the exit status to the current output (stdout or file)
+
+				// If a command (BG or FG) is terminated by a signal, message indicated which
+				// signal terminated the process will be printed
+
 			}
 
+			else {
+				// If input file was given, open the input file for reading only and us it as input
+
+				// If an output file was given, open the output file for reading only and use as output
+
+				// If process was set to run as a bg process and no output file was given
+				// then set the output of the bg process to dev/null
+
+
+				// Run the command using exec  / fork family of functions as appropriate
+
+			}
 
 			// Else if only whitespace or a newline entered then just reprompt
-			else {
-				continue;
-			}
+			// else {
+			// 	continue;
+			// }
 		}	
 	}
 
@@ -194,7 +219,8 @@ static void sigHandler(int sig) {
 	if (sig == SIGINT) {
 		printf("SIGINT caught\n");
 		// Figure out how to terminate just the foreground child process and do that here
-	}
+		// Get foreground process and terminate it (send it the SIGINT I guess?)
+			}
 	return;
 }
 
