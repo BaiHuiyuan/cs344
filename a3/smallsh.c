@@ -78,23 +78,31 @@ void command_prompt() {
 		printf("input: %s\n", input);
 
 		// Variables used in parsing input	
-		int arg_count = 0;
+		int arg_count = 0, 
+			word_count = 0;
 		char * arguments[MAX_ARGS];
+		char * words[MAX_ARGS + 1];
 		char * command;
 		char * input_file;
 		char * output_file;
+		const char * devnull = "/dev/null/";
+
+		// Booleans to track redirection mode and background vs foreground
+		int bg_mode = 0;
+		int redir_input = 0;
+		int redir_output = 0;
 
 		// Ignore lines that start with # as comments
 		if (input[0] == '#') {
 			continue;
 		}
 		
-		// Check that the input was not null before testing further
+		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
 			// Tokenize the line, storing words until all arguments are read
-			while(arguments[arg_count] = strtok(NULL, " ")) {
-				// Add logic here to parse for arguments -- check if arguments[arg_count][0] == '-'
-				char * word = arguments[arg_count];
+			// We are allowed to assume that the command is entered without syntax errors
+			while(words[word_count] = strtok(NULL, " ")) {
+				char * word = words[word_count]; // Vastly improves readability in this block
 				
 				// If the current 'word' is begins with '#', change it to null and stop reading additional arguments
 				if (word[0] == '#') {
@@ -104,29 +112,54 @@ void command_prompt() {
 
 				// If the input redirection operator is present, set input_redirect to 1 (true) and
 				// grab the filename (which should be the next word)
-				if (strcmp(word, "<") == 0) {
-					printf("Input redirection operator found\n");
-					// 
-				}
-				else if (strcmp(word, ">") == 0) {
-					printf("Output redirection operator found\n");
+				else if (strcmp(word, "<") == 0) {
+					words[++word_count] = strtok(NULL, " ");
+					input_file = words[word_count];
+					redir_input = 1;
 				}
 				
-				arg_count++;
+				// Likewise check if the output redireect operator was found
+				else if (strcmp(word, ">") == 0) {
+					words[++word_count] = strtok(NULL, " ");
+					output_file = words[word_count];
+					redir_output = 1;
+				}
+
+				// Set BG mode if word is '&'
+				else if (strcmp(word, "&") == 0) {
+					bg_mode = 1;
+					// Make sure there's nothing else after the &
+					if (words[++word_count] = strtok(NULL, " ")) {
+						perror("Usage error: '&' must be last word of the command\n");
+						break;
+					}
+				}
+
+				// Everything else should be an argument assuming user uses correct syntax
+				else {
+					arguments[arg_count++] = words[word_count++];
+				}
 			}
 
-			printf("arg_count: %d\n", arg_count);
 
 			// Set the background mode to true if the last 'argument' is '&'
 			if (arg_count > 1) {
 				if (strcmp(arguments[arg_count - 1], "&") == 0) {
 					printf("Background process.\n");
+					// bg_mode = 1;
 				}
 			}
 
 
-			printf("command = %s\n", command);
+			printf("command: %s\n", command);
 			print_array(arguments, arg_count);
+			printf("arg_count: %d\n", arg_count);
+			printf("Input redirection: %d\n", redir_input);
+			printf("output_file: %s\n", output_file);
+			printf("Output redirection: %d\n", redir_output);
+			printf("input_file: %s\n", input_file);
+			printf("bg_mode: %d\n", bg_mode);
+
 
 			// Check for the built-in commands:
 			if (strcmp(command, "exit") == 0) {
