@@ -33,10 +33,10 @@ extern char **environ; // pointer to strings listing the environment variables
 
 void change_directory(char * dir) {
 	// If empty string passed in, update to the HOME path
-	if (strcmp(dir, "") == 0 || dir == NULL) {
-		// Cite: TLPI Pg 127. Using getenv to lookup an environment var:
-		dir = getenv("HOME");
-	}
+	// if (strcmp(dir, "") == 0 || dir == NULL) {
+	
+	// 	dir = getenv("HOME");
+	// }
 	printf("Changing directory to:  %s\n", dir);
 
 	if(chdir(dir) == 0) {
@@ -141,42 +141,39 @@ void command_prompt() {
 				}
 			}
 
+// DEBUG //////////////////////////////////////////////
+			// printf("command: %s\n", command);
+			// print_array(arguments, arg_count);
+			// printf("arg_count: %d\n", arg_count);
+			// printf("Input redirection: %d\n", redir_input);
+			// printf("output_file: %s\n", output_file);
+			// printf("Output redirection: %d\n", redir_output);
+			// printf("input_file: %s\n", input_file);
+			// printf("bg_mode: %d\n", bg_mode);
+// DEBUG //////////////////////////////////////////////
 
-			// Set the background mode to true if the last 'argument' is '&'
-			if (arg_count > 1) {
-				if (strcmp(arguments[arg_count - 1], "&") == 0) {
-					printf("Background process.\n");
-					// bg_mode = 1;
-				}
-			}
-
-
-			printf("command: %s\n", command);
-			print_array(arguments, arg_count);
-			printf("arg_count: %d\n", arg_count);
-			printf("Input redirection: %d\n", redir_input);
-			printf("output_file: %s\n", output_file);
-			printf("Output redirection: %d\n", redir_output);
-			printf("input_file: %s\n", input_file);
-			printf("bg_mode: %d\n", bg_mode);
-
-
-			// Check for the built-in commands:
+			// exit builtin
 			if (strcmp(command, "exit") == 0) {
 				exit_shell();
 			}
 
-			// If no-arguments 'cd' command
+			// cd builtin
 			else if (strcmp(command, "cd") == 0) {
-				if (arg_count == 0)
-					change_directory("");
+				if (arg_count == 0) {
+					// Cite: TLPI Pg 127. Using getenv to lookup an environment var
+					change_directory(getenv("HOME"));
+				}
 				else
 					change_directory(arguments[0]);
 			}
 
-			// If cd with a directory passed
-			// else if (str)
-
+			// status builtin:
+			/*  used to print the exit status of the last foreground command. If a command 
+			(either a foreground or backgroudn comand) is terminated by a signal, a message 
+			indicated which signal terminated the process will be printed. */
+			else if (strcmp(command, "status") == 0) {
+				printf("Status...\n");
+			}
 
 
 			// Else if only whitespace or a newline entered then just reprompt
@@ -184,7 +181,7 @@ void command_prompt() {
 				continue;
 			}
 		}	
-		}
+	}
 
 		
 
