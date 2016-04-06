@@ -219,9 +219,13 @@ static void sigHandler(int sig) {
 	if (sig == SIGINT) {
 		printf("SIGINT caught\n");
 		// Figure out how to terminate just the foreground child process and do that here
-		// Get foreground process and terminate it (send it the SIGINT I guess?)
-			}
-	return;
+		// Get foreground process and terminate it (send  SIGINT I guess?)
+		// Cite: TLPI Section 20.5
+		pid_t fg_process = 0; // TODO: Get the actual foreground process id
+		kill(fg_process, 0 /* SIGINT */); // Send SIGINT signal to foreground process instead
+
+		return;
+	}
 }
 
 
