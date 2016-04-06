@@ -108,6 +108,7 @@ void command_prompt() {
 		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
+			arguments[arg_count++] = command;
 			// Tokenize the line, storing words until all arguments are read
 			// We are allowed to assume that the command is entered without syntax errors
 			while(words[word_count] = strtok(NULL, " ")) {
@@ -151,8 +152,8 @@ void command_prompt() {
 			}
 
 // DEBUG //////////////////////////////////////////////
-			// printf("command: %s\n", command);
-			// print_array(arguments, arg_count);
+			printf("command: %s\n", command);
+			print_array(arguments, arg_count);
 			// printf("arg_count: %d\n", arg_count);
 			// printf("Input redirection: %d\n", redir_input);
 			// printf("output_file: %s\n", output_file);
@@ -198,6 +199,19 @@ void command_prompt() {
 
 
 				// Run the command using exec  / fork family of functions as appropriate
+				// Cite: Slides from Lecture 9, especially, 28
+				pid_t child_pid = fork(); // Make a child process using fork
+				if (child_pid == 0) {
+					// Child created succesfully, now child try to exec
+					printf("Execing %s\n", command);
+					execvp(command, arguments);
+					continue;
+				}
+				else if (child_pid == -1) {
+					// Fork failed to create child
+					printf("fork failed!\n");
+					perror("fork()");
+				}
 
 			}
 
