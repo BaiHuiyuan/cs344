@@ -9,6 +9,7 @@
 * 
 *******************************************************************************/
 
+#include <stdbool.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -88,9 +89,9 @@ void command_prompt() {
 		const char * devnull = "/dev/null/";
 
 		// Booleans to track redirection mode and background vs foreground
-		int bg_mode = 0;
-		int redir_input = 0;
-		int redir_output = 0;
+		bool bg_mode = false;
+		bool redir_input = false;
+		bool redir_output = false;
 
 		// Ignore lines that start with # as comments
 		if (input[0] == '#') {
@@ -113,55 +114,65 @@ void command_prompt() {
 					break;
 				}
 
-				// If the input redirection operator is present, set input_redirect to 1 (true) and
+				// If the input redirection operator is present at this word, set input_redirect to 1 (true) and
 				// grab the filename (which should be the next word)
-				/*else*/ if (strcmp(word, "<") == 0) {
+				if (strcmp(word, "<") == 0) {
 					words[++word_count] = strtok(NULL, " ");
 					input_file = words[word_count];
-					redir_input = 1;
+					redir_input = true;
 				}
 				
-				// Likewise check if the output redireect operator was found
+				// Likewise check if the output redireect operator was found at this word
 				else if (strcmp(word, ">") == 0) {
 					words[++word_count] = strtok(NULL, " ");
 					output_file = words[word_count];
-					redir_output = 1;
+					redir_output = true;
 				}
 
 				// Set BG mode if word is '&'
 				else if (strcmp(word, "&") == 0) {
-					bg_mode = 1;
+					bg_mode = true;
 					// Make sure there's nothing else after the &
 					if (words[++word_count] = strtok(NULL, " ")) {
-						printf("Usage error: '&' must be last word of the command\n");
+						printf("Usage: '&' must be last word of the command\n");
 						break;
 					}
 				}
 
-				// Everything else should be an argument assuming user uses correct syntax
+				// Everything else should be an argument 
+				// We are assuming user uses correct syntax, especially for redirection syntax
 				else {
 					arguments[arg_count++] = words[word_count++];
 				}
 			}
+
+			// Null terminate the arguments array right after last argument added
+			// Failure to do this can cause any call after the first to cause some serious
+			// bugs, like exec() calls trying to send arguments when none are entered after
+			// we have entered any command with multiple arguments. This fixes that bug.
+			// Note that execvp() and execlp() reads from arguments until NULL is found.
 			arguments[arg_count] = NULL;
 
-			// exit builtin
+			// Built-in command evaluation. Not sure if should be able to redirect - guessing not?
+			// exit builtin: exits the smallsh shell
 			if (strcmp(command, "exit") == 0) {
+				// Free local malloc for arguments before going into our exit_shell process
 				free(arguments);
 				exit_shell();
 			}
 
-			// cd builtin
+			// cd builtin: Change directory. If no argument provided, cd to HOME env. variable
 			else if (strcmp(command, "cd") == 0) {
 				if (arg_count == 1) {
-					// Cite: TLPI Pg 127. Using getenv to lookup an environment var
+					// Use getenv to lookup an environment var
+					// Cite: TLPI Pg 127. 
 					change_directory(getenv("HOME"));
 				}
 				else if (arg_count == 2) {
 					change_directory(arguments[1]);
 				}
 				else {
-					printf("usage: cd [directory]\n");
+					printf("smallsh: cd: usage: cd [directory]\n");
 				}
 			}
 
@@ -190,30 +201,32 @@ void command_prompt() {
 				// Run the command using exec  / fork family of functions as appropriate
 				// Cite: Slides from Lecture 9, especially, 28
 				// Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
-				pid_t child_pid = fork(); // Make a child process using fork
+				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t wait_pid;
 
 				int child_status;
 				
-				if (child_pid == 0) {
-					// Child process will execute the code here
-					// printf("Execing %s\n", command);
-					// print_array(arguments, arg_count);
+				// Child process will execute the code here
+				if (pid == 0) {	
+					// printf("Execing %s\n", command); // TODO: DELETE THIS DEBUG LINE
+					// print_array(arguments, arg_count); // TODO: DELETE THIS DEBUG LINE
+					// Attempt to execute the command, print error if fails
 					if(execvp(command, arguments)  == -1) {
 						perror("smallsh");
 					}
-					exit(EXIT_FAILURE);
-					
+					exit(EXIT_FAILURE); // Only executes if execvp() failed
 				}
-				else if (child_pid == -1) {
+				else if (pid == -1) {
 					// Fork() failed to create child, report the error
-					printf("fork failed!\n");
 					perror("fork()");
 				}
 				else {
 					// Parent process will execute this code:
+					if (bg_mode) {
+
+					}
 					do {
-						wait_pid = waitpid(child_pid, &child_status, WUNTRACED);
+						wait_pid = waitpid(pid, &child_status, WUNTRACED);
 					} while (!WIFEXITED(child_status) && !WIFSIGNALED(child_status));
 				}
 			}
