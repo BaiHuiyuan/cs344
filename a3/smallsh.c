@@ -68,7 +68,16 @@ void push_bg_pid(pid_t pid) {
 	bg_pids.pids[bg_pids.size++] = pid;
 }
 
-
+void kill_all_bg_pids() {
+	// FG process should just handle signal as normal, need to go through bg processes
+	// Cite: TLPI Section 20.5
+	pid_t bg_process;
+	int i;
+	for (i = 0; i < bg_pids.size; i++) {
+		bg_process = bg_pids.pids[i];
+		kill(bg_process, SIGKILL); // kill all child processes
+	}
+}
 
 void change_directory(char * dir) {
 	if(!chdir(dir) == 0) {
@@ -79,8 +88,8 @@ void change_directory(char * dir) {
 }
 
 void exit_shell() {
-	// printf("Exiting...\n");
 	// Kill all child processes / jobs
+	kill_all_bg_pids();
 	// terminate smallsh itself by calling exit with success signal (0)
 	exit(0);
 }
@@ -297,21 +306,10 @@ void command_prompt() {
 // but instead terminates the foreground process
 // Cite: TLPI Page 399
 static void sig_handler(int sig) {
+	// Restablish signal handler for portability (without this, subsequent
+	// CTRL+C call after first was causing smallsh to terminate)
 	signal(SIGINT, sig_handler);
 	if (sig == SIGINT) {
-		printf("SIGINT caught\n");
-		// FG process should just handle signal as normal, need to go through bg processes
-		// Cite: TLPI Section 20.5
-		pid_t bg_process; // TODO: Get the actual foreground process id
-		int i;
-		for (i = 0; i < bg_pids.size; i++) {
-			bg_process = bg_pids.pids[i];
-			kill(bg_process, sig); // Send SIGINT signal to foreground process instead
-		}
-		
-		// If a command (BG or FG) is terminated by a signal, message indicated which
-		// signal terminated the process will be printed
-		// printf("Signal: %d\n", sig);
 		command_prompt();
 	}
 	else {
