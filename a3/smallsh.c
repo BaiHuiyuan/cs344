@@ -32,14 +32,13 @@ void print_array (char ** arguments, int size);
 /* Externs */
 extern char **environ; // pointer to strings listing the environment variables
 
+// C
 void change_directory(char * dir) {
-	if(chdir(dir) == 0) {
-		// chdir was succesful
-		printf("changed directory to %s\n", dir);
-	} else {
-		printf("error changing to %s\n", dir);
+	if(!chdir(dir) == 0) {
+		// chdir was unsuccesful
+		perror("cd");
+		//printf("changed directory to %s\n", dir);
 	}
-
 }
 
 void exit_shell() {
@@ -60,15 +59,15 @@ void command_prompt() {
 	char input[MAX_CHAR+1]; 
 	int repeat = 1;
 
-	// Read: Prompt user, get input, and null terminate their string
-	printf(": ");
-	fflush(stdout);
-
-	fgets(input, sizeof(input), stdin);
-	if (strlen(input) > 0)
-		input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
-
 	while(repeat == 1) {
+		// Read: Prompt user, get input, and null terminate their string
+		printf(": ");
+		fflush(stdout);
+
+		fgets(input, sizeof(input), stdin);
+		if (strlen(input) > 0)
+			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
+
 		// When a bg process terminates, a message showing the process id and exit status 
 		// will be printed. You should check to see if any background processes completed
 		// just before you prompt for a new command and print the message then.
@@ -100,7 +99,9 @@ void command_prompt() {
 		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
+			// Set the 
 			arguments[arg_count++] = command;
+
 			// Tokenize the line, storing words until all arguments are read
 			// We are allowed to assume that the command is entered without syntax errors
 			while(words[word_count] = strtok(NULL, " ")) {
@@ -114,7 +115,7 @@ void command_prompt() {
 
 				// If the input redirection operator is present, set input_redirect to 1 (true) and
 				// grab the filename (which should be the next word)
-				else if (strcmp(word, "<") == 0) {
+				/*else*/ if (strcmp(word, "<") == 0) {
 					words[++word_count] = strtok(NULL, " ");
 					input_file = words[word_count];
 					redir_input = 1;
@@ -144,17 +145,6 @@ void command_prompt() {
 			}
 			arguments[arg_count] = NULL;
 
-// DEBUG //////////////////////////////////////////////
-			// printf("command: %s\n", command);
-			// print_array(arguments, arg_count);
-			// printf("arg_count: %d\n", arg_count);
-			// printf("Input redirection: %d\n", redir_input);
-			// printf("output_file: %s\n", output_file);
-			// printf("Output redirection: %d\n", redir_output);
-			// printf("input_file: %s\n", input_file);
-			// printf("bg_mode: %d\n", bg_mode);
-// DEBUG //////////////////////////////////////////////
-
 			// exit builtin
 			if (strcmp(command, "exit") == 0) {
 				free(arguments);
@@ -177,10 +167,11 @@ void command_prompt() {
 
 			// status builtin:
 			else if (strcmp(command, "status") == 0) {
-				printf("Status...\n");
 				// Get the exit status of the last foreground command
+				int exit_value = 0; 
 
 				// Send the exit status to the current output (stdout or file)
+				printf("exit value %d\n", exit_value);
 
 				// If a command (BG or FG) is terminated by a signal, message indicated which
 				// signal terminated the process will be printed
@@ -206,8 +197,8 @@ void command_prompt() {
 				
 				if (child_pid == 0) {
 					// Child process will execute the code here
-					printf("Execing %s\n", command);
-					print_array(arguments, arg_count);
+					// printf("Execing %s\n", command);
+					// print_array(arguments, arg_count);
 					if(execvp(command, arguments)  == -1) {
 						perror("smallsh");
 					}
@@ -226,21 +217,9 @@ void command_prompt() {
 					} while (!WIFEXITED(child_status) && !WIFSIGNALED(child_status));
 				}
 			}
-
-			// Else if only whitespace or a newline entered then just reprompt
-			// else {
-			// 	continue;
-			// }
 		}
 
 		free(arguments);
-
-		// Prmopt user
-		printf(": ");
-		fflush(stdout);
-		fgets(input, sizeof(input), stdin);
-		if (strlen(input) > 0)
-			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 	}
 }
 
@@ -280,3 +259,16 @@ int main(int argc, char const *argv[])
 	command_prompt();
 	return 0;
 }
+
+
+
+// DEBUG //////////////////////////////////////////////
+			// printf("command: %s\n", command);
+			// print_array(arguments, arg_count);
+			// printf("arg_count: %d\n", arg_count);
+			// printf("Input redirection: %d\n", redir_input);
+			// printf("output_file: %s\n", output_file);
+			// printf("Output redirection: %d\n", redir_output);
+			// printf("input_file: %s\n", input_file);
+			// printf("bg_mode: %d\n", bg_mode);
+// DEBUG //////////////////////////////////////////////
