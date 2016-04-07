@@ -63,7 +63,7 @@ void command_prompt() {
 	// Read: Prompt user, get input, and null terminate their string
 	printf(": ");
 	fflush(stdout);
-	
+
 	fgets(input, sizeof(input), stdin);
 	if (strlen(input) > 0)
 		input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
@@ -81,7 +81,7 @@ void command_prompt() {
 		// Variables used in parsing input	
 		int arg_count = 0, 
 			word_count = 0;
-		char * arguments[MAX_ARGS];
+		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
 		char * words[MAX_ARGS + 1];
 		char * command;
 		char * input_file;
@@ -142,6 +142,7 @@ void command_prompt() {
 					arguments[arg_count++] = words[word_count++];
 				}
 			}
+			arguments[arg_count] = NULL;
 
 // DEBUG //////////////////////////////////////////////
 			// printf("command: %s\n", command);
@@ -156,6 +157,7 @@ void command_prompt() {
 
 			// exit builtin
 			if (strcmp(command, "exit") == 0) {
+				free(arguments);
 				exit_shell();
 			}
 
@@ -204,7 +206,8 @@ void command_prompt() {
 				
 				if (child_pid == 0) {
 					// Child process will execute the code here
-					// printf("Execing %s\n", command);
+					printf("Execing %s\n", command);
+					print_array(arguments, arg_count);
 					if(execvp(command, arguments)  == -1) {
 						perror("smallsh");
 					}
@@ -229,6 +232,8 @@ void command_prompt() {
 			// 	continue;
 			// }
 		}
+
+		free(arguments);
 
 		// Prmopt user
 		printf(": ");
