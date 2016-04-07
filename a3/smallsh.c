@@ -32,19 +32,11 @@ void print_array (char ** arguments, int size);
 extern char **environ; // pointer to strings listing the environment variables
 
 void change_directory(char * dir) {
-	// If empty string passed in, update to the HOME path
-	// if (strcmp(dir, "") == 0 || dir == NULL) {
-	
-	// 	dir = getenv("HOME");
-	// }
-	// printf("Changing directory to:  %s\n", dir);
-
 	if(chdir(dir) == 0) {
 		// chdir was succesful
 		printf("changed directory to %s\n", dir);
 	} else {
 		printf("error changing to %s\n", dir);
-		// printf("error number: %s\n", errno);
 	}
 
 }
@@ -77,14 +69,16 @@ void command_prompt() {
 			printf("PID %d terminated. Exit status: %d\n", 0, 0);
 		}
 
+		// TODO: Flush stdin
+
+
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
 		fgets(input, sizeof(input), stdin);
+		fflush(stdout);
+		fflush(stdin);
 		if (strlen(input) > 0)
 			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
-
-		// DEBUG: Echo the input
-		// printf("input: %s\n", input);
 
 		// Variables used in parsing input	
 		int arg_count = 0, 
@@ -140,7 +134,7 @@ void command_prompt() {
 					bg_mode = 1;
 					// Make sure there's nothing else after the &
 					if (words[++word_count] = strtok(NULL, " ")) {
-						perror("Usage error: '&' must be last word of the command\n");
+						printf("Usage error: '&' must be last word of the command\n");
 						break;
 					}
 				}
@@ -152,8 +146,8 @@ void command_prompt() {
 			}
 
 // DEBUG //////////////////////////////////////////////
-			printf("command: %s\n", command);
-			print_array(arguments, arg_count);
+			// printf("command: %s\n", command);
+			// print_array(arguments, arg_count);
 			// printf("arg_count: %d\n", arg_count);
 			// printf("Input redirection: %d\n", redir_input);
 			// printf("output_file: %s\n", output_file);
@@ -169,12 +163,16 @@ void command_prompt() {
 
 			// cd builtin
 			else if (strcmp(command, "cd") == 0) {
-				if (arg_count == 0) {
+				if (arg_count == 1) {
 					// Cite: TLPI Pg 127. Using getenv to lookup an environment var
 					change_directory(getenv("HOME"));
 				}
-				else
-					change_directory(arguments[0]);
+				else if (arg_count == 2) {
+					change_directory(arguments[1]);
+				}
+				else {
+					printf("usage: cd [directory]\n");
+				}
 			}
 
 			// status builtin:
@@ -201,25 +199,28 @@ void command_prompt() {
 				// Run the command using exec  / fork family of functions as appropriate
 				// Cite: Slides from Lecture 9, especially, 28
 				pid_t child_pid = fork(); // Make a child process using fork
+				int child_status;
 				if (child_pid == 0) {
 					// Child created succesfully, now child try to exec
 					printf("Execing %s\n", command);
 					execvp(command, arguments);
-					continue;
+					waitpid(child_pid, &child_status, 0);
+					fflush(stdin);
+					fflush(stdout);
+					// continue;
 				}
 				else if (child_pid == -1) {
 					// Fork failed to create child
 					printf("fork failed!\n");
 					perror("fork()");
 				}
-
 			}
 
 			// Else if only whitespace or a newline entered then just reprompt
 			// else {
 			// 	continue;
 			// }
-		}	
+		}
 	}
 
 		
