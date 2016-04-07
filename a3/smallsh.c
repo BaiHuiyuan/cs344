@@ -281,9 +281,9 @@ void command_prompt() {
 				else {
 					// Parent process will execute this code:
 					if (bg_mode) {
-						printf("TODO: exec in bg mode\n");
+						// Add the background process id to the list and display to user
 						push_bg_pid(pid);
-						// Execute in background mode and print pid of bg process
+						printf("background pid is %d\n", pid);
 					}
 					else {
 						do {
@@ -310,6 +310,7 @@ static void sig_handler(int sig) {
 	// CTRL+C call after first was causing smallsh to terminate)
 	signal(SIGINT, sig_handler);
 	if (sig == SIGINT) {
+		printf("\n");
 		command_prompt();
 	}
 	else {
