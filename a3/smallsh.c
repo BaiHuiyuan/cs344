@@ -105,39 +105,31 @@ void command_prompt() {
 	int bg_pid;
 
 	while(repeat == 1) {
-		// First check to see if any bg processes have finished
+		// First check to see if any bg processes have finished. If so, keep checking.
 		// Cite: Slide 21 lecture 9, and the manpage for wait()
-		// TODO: modify this little block to be a funcion that takes a list of bg processes
 		// and iterates through those id's so that we don't print foreground process?
 		bg_pid = -1;
-		bg_pid = waitpid(-1, &bg_exit_status, WNOHANG);
-		while( bg_pid != -1 && bg_pid != 0) {
-			if(WIFEXITED(bg_exit_status)) {
-				printf("pid %d exited normally. Exit status: %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
+		int i;
+		for (i = 0; i < bg_pids.size; i++) {
+			bg_pid = waitpid(bg_pids.pids[i], &bg_exit_status, WNOHANG);
+			if (bg_pid != 0 && bg_pid != -1) {
+				// If wait exited with a status code, display it:
+				if(WIFEXITED(bg_exit_status)) {
+					printf("pid %d exited normally. Exit status: %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
+				}
+				// if it was terminated by signal, display the code:
+				else if (WIFSIGNALED(bg_exit_status)) {
+					printf("pid %d terminated by signal: %d\n", bg_pid, WTERMSIG(bg_exit_status));
+				}
 			}
-			else if (WIFSIGNALED(bg_exit_status)) {
-				printf("pid %d terminated by signal: %d\n", bg_pid, WTERMSIG(bg_exit_status));
-			}
-			// printf("pid %d exited. Exit status: %d\n", bg_pid, bg_exit_status);
-			bg_pid = waitpid(-1, &bg_exit_status, WNOHANG);
 		}
 
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
 		fflush(stdout);
-
 		fgets(input, sizeof(input), stdin);
 		if (strlen(input) > 0)
 			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
-
-		// When a bg process terminates, a message showing the process id and exit status 
-		// will be printed. You should check to see if any background processes completed
-		// just before you prompt for a new command and print the message then.
-		if (0 == 1 /* any background process completed */) {
-			printf("Some background process completed.\n");
-			// Use waitpid to check for any completed background processes
-			printf("PID %d terminated. Exit status: %d\n", 0, 0);
-		}
 
 		// Variables used in parsing input	
 		int arg_count = 0, 
@@ -147,7 +139,7 @@ void command_prompt() {
 		char * command;
 		char * input_file;
 		char * output_file;
-		const char * devnull = "/dev/null/";
+		const char * devnull = "/dev/null";
 
 		// Booleans to track redirection mode and background vs foreground
 		bool bg_mode = false;
@@ -199,9 +191,8 @@ void command_prompt() {
 						break;
 					}
 				}
-
-				// Everything else should be an argument 
-				// We are assuming user uses correct syntax, especially for redirection syntax
+				
+				// all others are arguments (we assume user does correct syntax)
 				else {
 					arguments[arg_count++] = words[word_count++];
 				}
@@ -214,7 +205,7 @@ void command_prompt() {
 			// Note that execvp() and execlp() reads from arguments until NULL is found.
 			arguments[arg_count] = NULL;
 
-			// Built-in command evaluation. Not sure if should be able to redirect - guessing not?
+			// Built-in command evaluation. These do NOT have to worry about redirection
 			// exit builtin: exits the smallsh shell
 			if (strcmp(command, "exit") == 0) {
 				// Free local malloc for arguments before going into our exit_shell process
@@ -246,12 +237,15 @@ void command_prompt() {
 			else if (strcmp(command, "status") == 0) {
 				// Send the exit status to the current output (stdout or file)
 				printf("exit value %d\n", fg_exit_status);
-
-				
-
 			}
 
 			else {
+				// Run the command using exec  / fork family of functions as appropriate
+				// Cite: Slides from Lecture 9, especially, 28
+				// Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
+				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
+				pid_t wait_pid;
+				
 				// If input file was given, open the input file for reading only and us it as input
 
 				// If an output file was given, open the output file for reading only and use as output
@@ -260,19 +254,13 @@ void command_prompt() {
 				// then set the output of the bg process to dev/null
 
 
-				// Run the command using exec  / fork family of functions as appropriate
-				// Cite: Slides from Lecture 9, especially, 28
-				// Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
-				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
-				pid_t wait_pid;
-
 				// Child process has pid 0 if fork() success
 				if (pid == 0) {	
 					// Attempt to execute the command, print error if fails
 					if(execvp(command, arguments)  == -1) {
 						perror("smallsh");
 					}
-					exit(EXIT_FAILURE); // Only executes if execvp() failed
+					exit(1); // Only executes if execvp() failed
 				}
 				else if (pid == -1) {
 					// Fork() failed to create child, report the error
@@ -286,12 +274,12 @@ void command_prompt() {
 						printf("background pid is %d\n", pid);
 					}
 					else {
-						do {
-							wait_pid = waitpid(pid, &fg_exit_status, 0); // WUNTRACED);
-						} while (!WIFEXITED(fg_exit_status) && !WIFSIGNALED(fg_exit_status));
-						// Todo: How to print exit status of process properly??
-						if(fg_exit_status != 0) {
-							printf("%s: terminated by signal %d\n", command, fg_exit_status);
+						// Foreground process, wait for it to finish, print the term signal
+						wait_pid = waitpid(pid, &fg_exit_status, WUNTRACED); // last param 0 better?
+						if (fg_exit_status != 0 && fg_exit_status != -1) {
+							if(WIFSIGNALED(fg_exit_status)) {
+								printf("pid %s: terminated by signal %d\n", command, WTERMSIG(fg_exit_status));
+							}
 						}
 					}
 				}
@@ -311,7 +299,7 @@ static void sig_handler(int sig) {
 	signal(SIGINT, sig_handler);
 	if (sig == SIGINT) {
 		printf("\n");
-		command_prompt();
+		// command_prompt();
 	}
 	else {
 		printf("Signal: %d", sig);
