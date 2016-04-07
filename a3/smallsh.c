@@ -27,13 +27,49 @@
 
 /* Forward declarations */
 void command_prompt();
-static void sigHandler(int sig);
+static void sig_handler(int sig);
 void print_array (char ** arguments, int size);
 
 /* Externs */
 extern char **environ; // pointer to strings listing the environment variables
 
-// C
+/* Struct for storing dynamic array of process id's running in background */
+// Cite: CS 261 - dynamic array materials.
+// Decided to do this because I couldn't think of an easy way to keep a dynamic
+// list of bg processes to review before each prompt to check if they had ended
+// or not. Also, when exiting shell, want to be able to iterate over all bg processes
+// and kill them
+struct pid_arr {
+	pid_t * pids; // array of process id's
+	int capacity;
+	int size;
+};
+
+// Make a single pid_arr in global scope
+struct pid_arr bg_pids;
+
+void init_bg_process_arr() {
+	bg_pids.capacity = 10;
+	bg_pids.size = 0;
+	bg_pids.pids = malloc(sizeof(pid_t) * bg_pids.capacity );
+}
+
+bool pid_arr_is_full() {
+	return (bg_pids.size >= bg_pids.capacity);
+}
+
+void push_bg_pid(pid_t pid) {
+	// If array is full, reallocate to twice size
+	if (pid_arr_is_full()) {
+		bg_pids.capacity *= 2;
+		bg_pids.pids = realloc(bg_pids.pids, sizeof(pid_t) * bg_pids.capacity );
+	}
+	// TODO: if time, halve memory if less than 1/4 full
+	bg_pids.pids[bg_pids.size++] = pid;
+}
+
+
+
 void change_directory(char * dir) {
 	if(!chdir(dir) == 0) {
 		// chdir was unsuccesful
@@ -50,12 +86,6 @@ void exit_shell() {
 }
 
 void command_prompt() {
-	// Start up signal handler
-	// Cite: TLPI Chapter 20, ~Page 401 and other examples
-	if (signal(SIGINT, sigHandler) == SIG_ERR) {
-		printf("SIG_ERR received\n");
-	}
-
 	// support MAX_CHAR characters + 1 for null byte
 	char input[MAX_CHAR+1]; 
 	int repeat = 1;
@@ -243,6 +273,7 @@ void command_prompt() {
 					// Parent process will execute this code:
 					if (bg_mode) {
 						printf("TODO: exec in bg mode\n");
+						push_bg_pid(pid);
 						// Execute in background mode and print pid of bg process
 					}
 					else {
@@ -265,19 +296,22 @@ void command_prompt() {
 // signal handler for SIGINT that does NOT terminate this shell,
 // but instead terminates the foreground process
 // Cite: TLPI Page 399
-static void sigHandler(int sig) {
+static void sig_handler(int sig) {
+	signal(SIGINT, sig_handler);
 	if (sig == SIGINT) {
 		printf("SIGINT caught\n");
-		// Figure out how to terminate just the foreground child process and do that here
-		// Get foreground process and terminate it (send  SIGINT I guess?)
+		// FG process should just handle signal as normal, need to go through bg processes
 		// Cite: TLPI Section 20.5
-		pid_t fg_process = 0; // TODO: Get the actual foreground process id
-		int signalb = 0;
-		kill(fg_process, signalb); // Send SIGINT signal to foreground process instead
+		pid_t bg_process; // TODO: Get the actual foreground process id
+		int i;
+		for (i = 0; i < bg_pids.size; i++) {
+			bg_process = bg_pids.pids[i];
+			kill(bg_process, sig); // Send SIGINT signal to foreground process instead
+		}
 		
 		// If a command (BG or FG) is terminated by a signal, message indicated which
 		// signal terminated the process will be printed
-		printf("Signal: %d\n", sig);
+		// printf("Signal: %d\n", sig);
 		command_prompt();
 	}
 	else {
@@ -298,8 +332,10 @@ void print_array (char ** arguments, int n) {
 // main
 int main(int argc, char const *argv[])
 {
-
-
+	// Start up signal handler
+	// Cite: TLPI Chapter 20, ~Page 401 and other examples
+	init_bg_process_arr();
+	signal(SIGINT, sig_handler);
 
 	command_prompt();
 	return 0;
