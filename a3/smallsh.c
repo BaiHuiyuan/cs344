@@ -60,7 +60,29 @@ void command_prompt() {
 	char input[MAX_CHAR+1]; 
 	int repeat = 1;
 
+	// used to store the exit status of the last foreground process
+	int fg_exit_status;
+	int bg_exit_status;
+	int bg_pid;
+
 	while(repeat == 1) {
+		// First check to see if any bg processes have finished
+		// Cite: Slide 21 lecture 9, and the manpage for wait()
+		// TODO: modify this little block to be a funcion that takes a list of bg processes
+		// and iterates through those id's so that we don't print foreground process?
+		bg_pid = -1;
+		bg_pid = waitpid(-1, &bg_exit_status, WNOHANG);
+		while( bg_pid != -1 && bg_pid != 0) {
+			if(WIFEXITED(bg_exit_status)) {
+				printf("pid %d exited normally. Exit status: %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
+			}
+			else if (WIFSIGNALED(bg_exit_status)) {
+				printf("pid %d terminated by signal: %d\n", bg_pid, WTERMSIG(bg_exit_status));
+			}
+			// printf("pid %d exited. Exit status: %d\n", bg_pid, bg_exit_status);
+			bg_pid = waitpid(-1, &bg_exit_status, WNOHANG);
+		}
+
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
 		fflush(stdout);
@@ -163,29 +185,30 @@ void command_prompt() {
 
 			// cd builtin: Change directory. If no argument provided, cd to HOME env. variable
 			else if (strcmp(command, "cd") == 0) {
+				// If only argument is the 'cd' command, change to HOME path variable directory
 				if (arg_count == 1) {
 					// Use getenv to lookup an environment var
 					// Cite: TLPI Pg 127. 
 					change_directory(getenv("HOME"));
 				}
+
+				// else if argument was provided to cd, attempt to change to that directory
 				else if (arg_count == 2) {
 					change_directory(arguments[1]);
 				}
+
+				// else more arguments were provided, print usage message.
 				else {
 					printf("smallsh: cd: usage: cd [directory]\n");
 				}
 			}
 
-			// status builtin:
+			// status builtin: Provides exit status of last foreground command that exited
 			else if (strcmp(command, "status") == 0) {
-				// Get the exit status of the last foreground command
-				int exit_value = 0; 
-
 				// Send the exit status to the current output (stdout or file)
-				printf("exit value %d\n", exit_value);
+				printf("exit value %d\n", fg_exit_status);
 
-				// If a command (BG or FG) is terminated by a signal, message indicated which
-				// signal terminated the process will be printed
+				
 
 			}
 
@@ -204,12 +227,8 @@ void command_prompt() {
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t wait_pid;
 
-				int child_status;
-				
-				// Child process will execute the code here
+				// Child process has pid 0 if fork() success
 				if (pid == 0) {	
-					// printf("Execing %s\n", command); // TODO: DELETE THIS DEBUG LINE
-					// print_array(arguments, arg_count); // TODO: DELETE THIS DEBUG LINE
 					// Attempt to execute the command, print error if fails
 					if(execvp(command, arguments)  == -1) {
 						perror("smallsh");
@@ -223,11 +242,18 @@ void command_prompt() {
 				else {
 					// Parent process will execute this code:
 					if (bg_mode) {
-
+						printf("TODO: exec in bg mode\n");
+						// Execute in background mode and print pid of bg process
 					}
-					do {
-						wait_pid = waitpid(pid, &child_status, WUNTRACED);
-					} while (!WIFEXITED(child_status) && !WIFSIGNALED(child_status));
+					else {
+						do {
+							wait_pid = waitpid(pid, &fg_exit_status, 0); // WUNTRACED);
+						} while (!WIFEXITED(fg_exit_status) && !WIFSIGNALED(fg_exit_status));
+						// Todo: How to print exit status of process properly??
+						if(fg_exit_status != 0) {
+							printf("%s: terminated by signal %d\n", command, fg_exit_status);
+						}
+					}
 				}
 			}
 		}
@@ -246,10 +272,16 @@ static void sigHandler(int sig) {
 		// Get foreground process and terminate it (send  SIGINT I guess?)
 		// Cite: TLPI Section 20.5
 		pid_t fg_process = 0; // TODO: Get the actual foreground process id
-		int sig = 0;
-		kill(fg_process, sig /* SIGINT */); // Send SIGINT signal to foreground process instead
-
-		return;
+		int signalb = 0;
+		kill(fg_process, signalb); // Send SIGINT signal to foreground process instead
+		
+		// If a command (BG or FG) is terminated by a signal, message indicated which
+		// signal terminated the process will be printed
+		printf("Signal: %d\n", sig);
+		command_prompt();
+	}
+	else {
+		printf("Signal: %d", sig);
 	}
 }
 
