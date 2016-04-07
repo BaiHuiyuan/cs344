@@ -17,6 +17,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 /* Constants */
@@ -59,6 +60,14 @@ void command_prompt() {
 	char input[MAX_CHAR+1]; 
 	int repeat = 1;
 
+	// Read: Prompt user, get input, and null terminate their string
+	printf(": ");
+	fflush(stdout);
+	
+	fgets(input, sizeof(input), stdin);
+	if (strlen(input) > 0)
+		input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
+
 	while(repeat == 1) {
 		// When a bg process terminates, a message showing the process id and exit status 
 		// will be printed. You should check to see if any background processes completed
@@ -68,17 +77,6 @@ void command_prompt() {
 			// Use waitpid to check for any completed background processes
 			printf("PID %d terminated. Exit status: %d\n", 0, 0);
 		}
-
-		// TODO: Flush stdin
-
-
-		// Read: Prompt user, get input, and null terminate their string
-		printf(": ");
-		fgets(input, sizeof(input), stdin);
-		fflush(stdout);
-		fflush(stdin);
-		if (strlen(input) > 0)
-			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 
 		// Variables used in parsing input	
 		int arg_count = 0, 
@@ -198,21 +196,31 @@ void command_prompt() {
 
 				// Run the command using exec  / fork family of functions as appropriate
 				// Cite: Slides from Lecture 9, especially, 28
+				// Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
 				pid_t child_pid = fork(); // Make a child process using fork
+				pid_t wait_pid;
+
 				int child_status;
+				
 				if (child_pid == 0) {
-					// Child created succesfully, now child try to exec
-					printf("Execing %s\n", command);
-					execvp(command, arguments);
-					waitpid(child_pid, &child_status, 0);
-					fflush(stdin);
-					fflush(stdout);
-					// continue;
+					// Child process will execute the code here
+					// printf("Execing %s\n", command);
+					if(execvp(command, arguments)  == -1) {
+						perror("smallsh");
+					}
+					exit(EXIT_FAILURE);
+					
 				}
 				else if (child_pid == -1) {
-					// Fork failed to create child
+					// Fork() failed to create child, report the error
 					printf("fork failed!\n");
 					perror("fork()");
+				}
+				else {
+					// Parent process will execute this code:
+					do {
+						wait_pid = waitpid(child_pid, &child_status, WUNTRACED);
+					} while (!WIFEXITED(child_status) && !WIFSIGNALED(child_status));
 				}
 			}
 
@@ -221,10 +229,14 @@ void command_prompt() {
 			// 	continue;
 			// }
 		}
+
+		// Prmopt user
+		printf(": ");
+		fflush(stdout);
+		fgets(input, sizeof(input), stdin);
+		if (strlen(input) > 0)
+			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 	}
-
-		
-
 }
 
 // signal handler for SIGINT that does NOT terminate this shell,
@@ -237,7 +249,8 @@ static void sigHandler(int sig) {
 		// Get foreground process and terminate it (send  SIGINT I guess?)
 		// Cite: TLPI Section 20.5
 		pid_t fg_process = 0; // TODO: Get the actual foreground process id
-		kill(fg_process, 0 /* SIGINT */); // Send SIGINT signal to foreground process instead
+		int sig = 0;
+		kill(fg_process, sig /* SIGINT */); // Send SIGINT signal to foreground process instead
 
 		return;
 	}
@@ -247,8 +260,8 @@ static void sigHandler(int sig) {
 // Used for debugging purposes
 void print_array (char ** arguments, int n) {
 	int i = 0;
-	while (i < n) {
-		printf("arg%d: %s\n", i, arguments[i++]);
+	for (i = 0; i < n; i++) {
+		printf("arg%d: %s\n", i, arguments[i]);
 	}
 }
 
