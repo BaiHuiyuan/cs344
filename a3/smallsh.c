@@ -115,11 +115,11 @@ void command_prompt() {
 			if (bg_pid != 0 && bg_pid != -1) {
 				// If wait exited with a status code, display it:
 				if(WIFEXITED(bg_exit_status)) {
-					printf("pid %d exited normally. Exit status: %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
+					printf("background pid %d is done: exit value %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
 				}
 				// if it was terminated by signal, display the code:
 				else if (WIFSIGNALED(bg_exit_status)) {
-					printf("pid %d terminated by signal: %d\n", bg_pid, WTERMSIG(bg_exit_status));
+					printf("background pid %d is done: terminated by signal %d\n", bg_pid, WTERMSIG(bg_exit_status));
 				}
 			}
 		}
@@ -283,10 +283,9 @@ void command_prompt() {
 						}
 					}
 				}
-			}
+			} // End Exec block
+		 	free(arguments);
 		}
-
-		free(arguments);
 	}
 }
 

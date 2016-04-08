@@ -1,0 +1,10 @@
+total 36
+-rw-rw-r-- 1 shawn shawn     0 Apr  7 20:26 derple
+-rw-rw-r-- 1 shawn shawn     0 Apr  7 20:26 derplenerb
+-rw-rw-r-- 1 shawn shawn   382 Apr  6 20:41 makefile
+-rw-rw-r-- 1 shawn shawn     0 Apr  4 21:25 readme.txt
+-rwxrwxr-x 1 shawn shawn 12571 Apr  7 20:24 smallsh
+-rw-rw-r-- 1 shawn shawn 10498 Apr  7 20:14 smallsh.c
+drwxrwxr-x 2 shawn shawn  4096 Apr  6 21:02 test
+-rw-rw-r-- 1 shawn shawn     0 Apr  7 20:29 testfile
+-rw-rw-r-- 1 shawn shawn     0 Apr  7 20:24 tfile
