@@ -129,36 +129,42 @@ void check_bg_processes() {
 
 void command_prompt() {
 	// support MAX_CHAR characters + 1 for null byte
-	char input[MAX_CHAR+1]; 
 	int repeat = 1;
 	int fg_exit_status;
 	const char * devnull = "/dev/null";
 
 	while(repeat == 1) {
+		printf("Hello from top of command_prompt() while loop\n");
+		// Variables used in parsing input	
+		int arg_count = 0, 
+			word_count = 0;
+		// char input[MAX_CHAR+1];
+
+		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
+		// char ** input = malloc(MAX_CHAR + 1 * sizeof(char *));
+		char * words[MAX_ARGS + 1];
+		char * command = NULL, * input_file = NULL, * output_file = NULL;
+		
+		// Booleans to track redirection mode and background vs foreground
+		bool bg_mode = false, redir_input = false, redir_output = false;
+
 		// First check to see if any bg processes have finished. If so, keep checking.
 		check_bg_processes();
 
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
-		fgets(input, sizeof(input), stdin);
-		fflush(stdout);
-		fflush(stdin);
+
+		// fgets(input, sizeof(input), stdin);
+		char * input = NULL;
+		size_t len = 0;
+		ssize_t read;
+		// scanf("%*[^\n]%*c");
+		getline(&input, &len , stdin);
+		printf("getline read: %s", input);
+
 		if (strlen(input) > 0)
 			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 
-		// Variables used in parsing input	
-		int arg_count = 0, 
-			word_count = 0;
-		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
-		char * words[MAX_ARGS + 1];
-		char * command = NULL;
-		char * input_file = NULL;
-		char * output_file = NULL;
-		
-		// Booleans to track redirection mode and background vs foreground
-		bool bg_mode = false;
-		bool redir_input = false;
-		bool redir_output = false;
 
 		// Ignore lines that start with # as comments
 		if (input[0] == '#') {
@@ -167,8 +173,8 @@ void command_prompt() {
 		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
-			// Set the 
 			arguments[arg_count++] = command;
+			printf("Inside if (command = strtok)\n");
 
 			// Tokenize the line, storing words until all arguments are read
 			// We are allowed to assume that the command is entered without syntax errors
@@ -199,11 +205,13 @@ void command_prompt() {
 				// Set BG mode if word is '&'
 				else if (strcmp(word, "&") == 0) {
 					bg_mode = true;
+					printf("Inside ampersand!\n");
 					// Make sure there's nothing else after the &
-					if (words[++word_count] = strtok(NULL, " ")) {
-						printf("Usage: '&' must be last word of the command\n");
-						break;
-					}
+					// if (strtok(NULL, " ")) {
+					// 	printf("Usage: '&' must be last word of the command\n");
+					// 	continue;
+					// }
+					// break;
 				}
 				
 				// all others are arguments (we assume user does correct syntax)
@@ -218,6 +226,7 @@ void command_prompt() {
 			we have entered any command with multiple arguments. This fixes that bug.
 			Note that execvp() and execlp() reads from arguments until NULL is found. */
 			arguments[arg_count] = NULL;
+			free(input);
 
 			/***********************************************************************************
 			* Built-in command evaluation. These do NOT have to worry about redirection
@@ -263,9 +272,13 @@ void command_prompt() {
 			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
 			***********************************************************************************/
 			else {
+				printf("pid %d is about to fork... \n", getpid());
+				fflush(stdout);
+				fflush(stdin);
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t fg_pid, cpid, w;
 				
+				printf("Inside pid %d, the return value of fork() is %d\n", getpid(), pid);
 				// If input file was given, open the input file for reading only and us it as input
 
 				// If an output file was given, open the output file for reading only and use as output
@@ -274,33 +287,49 @@ void command_prompt() {
 				// then set the output of the bg process to dev/null
 
 				// branch depending on if fork child or parent
-				switch (pid) {
-					case 0: // Child process -- attempt to execute command
-						if(execvp(command, arguments)  == -1) {
-							printf("Attempted to exec %s with ", command);
-							print_array(arguments, arg_count);
-							perror("smallsh");
-							fg_exit_status = 1;
-						}
-						exit(1); // Only executes if execvp() failed
-						break;
+				// switch (pid) {
+				// 	case 0: // Child process -- attempt to execute command
+				if (pid == 0) {
+					printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
+					print_array(arguments, arg_count);
+					execvp(command, arguments);
+					command = NULL; arguments = NULL;
+					perror("smallsh");
+					// fg_exit_status = 1;
+					exit(EXIT_FAILURE); // Only executes if execvp() failed
+					printf("I should never see this.\n");
+					// break; 
+				}
+					// case -1: // Fork() failed to create child, report the error
+				else if (pid == -1) {
+					perror("fork()");
+					// break;
+				}
 
-					case -1: // Fork() failed to create child, report the error
-						perror("fork()");
-						break;
-
-					default: // Parent process will execute this code:
+					// default: // Parent process will execute this code:
+				else {
+					printf("pid %d: Entering default\n", getpid());
+					
+					if (bg_mode) {
+						// printf("pid %d: if (bg_mode) block\n", getpid());
+						// push_bg_pid(pid);
+						printf("pid %d: background pid is %d\n", getpid(), pid);
+						// waitpid(pid, &fg_exit_status, WNOHANG);
+					}
+					else {
+						printf("pid %d: else block. foreground process executes this\n", getpid());
+			                   w = waitpid(cpid, &fg_exit_status, 0);
+						// CITE: manpage for waitpid, code example on Ubuntu distro
+		               // do {
+			        }
+				}
 						// If BG mode, add its process id to the list, display pid to user
-						if (bg_mode) {
-							push_bg_pid(pid);
-							printf("background pid is %d\n", pid);
-						}
 
 						// Foreground process, wait for it to finish, print the term signal
-						else {
+						// else {
+						// 	printf("pid %d: else block. foreground process executes this\n", getpid());
 							// CITE: manpage for waitpid, code example on Ubuntu distro
 			               // do {
-			                   w = waitpid(cpid, &fg_exit_status, 0);
 			                   // TODO: Figure out why this always exits to -1 instead of sending the termsig??
 			               //     if (w == -1) {
 			               //         perror("waitpid");
@@ -317,13 +346,14 @@ void command_prompt() {
 			               //         printf("continued\n");
 			               //     }
 			   //             // } while (!WIFEXITED(fg_exit_status) && !WIFSIGNALED(fg_exit_status));
-						}
-						break;
-				} // end pid switch for fork()
+						// }
+						// break;
+				// } // end pid switch for fork()
 			} // End Exec block
 			command = NULL;
-		 	free(arguments);
+	 		free(arguments);
 		} // end if (command = strtok...)
+		
 	}
 }
 
