@@ -68,6 +68,7 @@ void push_bg_pid(pid_t pid) {
 	bg_pids.pids[bg_pids.size++] = pid;
 }
 
+// Return true of pid is in the bg_pids.pids array
 bool is_bg_pid(pid_t pid) {
 	int i;
 	for (i = 0; i < bg_pids.size; i++) {
@@ -77,6 +78,7 @@ bool is_bg_pid(pid_t pid) {
 	return false;
 }
 
+// sends SIGKILL to all background processes of the shell
 void kill_all_bg_pids() {
 	// FG process should just handle signal as normal, need to go through bg processes
 	// Cite: TLPI Section 20.5
@@ -88,6 +90,7 @@ void kill_all_bg_pids() {
 	}
 }
 
+// Change directory
 void change_directory(char * dir) {
 	if(!chdir(dir) == 0) {
 		// chdir was unsuccesful
@@ -95,6 +98,7 @@ void change_directory(char * dir) {
 		//printf("changed directory to %s\n", dir);
 	}
 }
+
 
 void exit_shell() {
 	// Kill all child processes / jobs
@@ -140,10 +144,12 @@ void command_prompt() {
 			word_count = 0;
 		// char input[MAX_CHAR+1];
 
-		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
 		// char ** input = malloc(MAX_CHAR + 1 * sizeof(char *));
+		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
 		char * words[MAX_ARGS + 1];
 		char * command = NULL, * input_file = NULL, * output_file = NULL;
+		char input[MAX_CHAR + 1];
+		memset (input, '\0', MAX_ARGS);
 		
 		// Booleans to track redirection mode and background vs foreground
 		bool bg_mode = false, redir_input = false, redir_output = false;
@@ -153,13 +159,13 @@ void command_prompt() {
 
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
+		fflush(stdout);
+		fflush(stdin);
+		fgets(input, MAX_CHAR, stdin);
 
-		char input[MAX_CHAR + 1];
-		input[0] = '\0';
 		// getline(&input, &len , stdin);
 		// size_t len = 0;
-		ssize_t read;
-		fgets(input, sizeof(input), stdin);
+		// ssize_t read;
 		// scanf("%*[^\n]%*c");
 
 		// If the input string was more than a single character
@@ -175,8 +181,9 @@ void command_prompt() {
 
 		
 		// Check that the input was not null before evaluating further
-		if (command = strtok(input, " ")) {
+		if (command = strtok(input, " \n")) {
 			arguments[arg_count++] = command;
+			// printf("Just ran command = strtok(input, ' '), command = '%s'\n", command);
 			// printf("Inside if (command = strtok)\n");
 
 			// Tokenize the line, storing words until all arguments are read
@@ -276,8 +283,8 @@ void command_prompt() {
 			***********************************************************************************/
 			else {
 				// printf("pid %d is about to fork... \n", getpid());
-				fflush(stdout);
-				fflush(stdin);
+				// fflush(stdout);
+				// fflush(stdin);
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t fg_pid, cpid, w;
 				
@@ -296,11 +303,11 @@ void command_prompt() {
 					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
 					// print_array(arguments, arg_count);
 					execvp(command, arguments);
+					perror(command);
 					command = NULL; arguments = NULL;
-					perror("smallsh");
 					// fg_exit_status = 1;
 					exit(EXIT_FAILURE); // Only executes if execvp() failed
-					printf("I should never see this.\n");
+					printf("Do not see me!! Right after execvp failure.\n");
 					// break; 
 				}
 					// case -1: // Fork() failed to create child, report the error
@@ -315,47 +322,37 @@ void command_prompt() {
 					
 					if (bg_mode) {
 						// printf("pid %d: if (bg_mode) block\n", getpid());
-						// push_bg_pid(pid);
-						// printf("pid %d: background pid is %d\n", getpid(), pid);
-						// waitpid(pid, &fg_exit_status, WNOHANG);
+						push_bg_pid(pid);
+						printf("pid %d: background pid is %d\n", getpid(), pid);
+						waitpid(pid, &fg_exit_status, WNOHANG);
 					}
 					else {
-						// printf("pid %d: else block. foreground process executes this\n", getpid());
-			                   w = waitpid(cpid, &fg_exit_status, 0);
 						// CITE: manpage for waitpid, code example on Ubuntu distro
-		               // do {
+                   		w = waitpid(cpid, &fg_exit_status, 0);
+		               
+		            	// do {
+		             //       // TODO: Figure out why this always exits to -1 instead of sending the termsig??
+		             //       if (w == -1) {
+		             //           perror("waitpid");
+		             //           exit(EXIT_FAILURE); 
+		             //       }
+
+		             //       if (WIFEXITED(fg_exit_status)) {
+		             //           printf("exited, status=%d\n", WEXITSTATUS(fg_exit_status));
+		             //       } else if (WIFSIGNALED(fg_exit_status)) {
+		             //           printf("killed by signal %d\n", WTERMSIG(fg_exit_status));
+		             //       } else if (WIFSTOPPED(fg_exit_status)) {
+		             //           printf("stopped by signal %d\n", WSTOPSIG(fg_exit_status));
+		             //       } else if (WIFCONTINUED(fg_exit_status)) {
+		             //           printf("continued\n");
+		             //       }
+		             //   	} while (!WIFEXITED(fg_exit_status) && !WIFSIGNALED(fg_exit_status));
 			        }
 				}
-						// If BG mode, add its process id to the list, display pid to user
-
-						// Foreground process, wait for it to finish, print the term signal
-						// else {
-						// 	printf("pid %d: else block. foreground process executes this\n", getpid());
-							// CITE: manpage for waitpid, code example on Ubuntu distro
-			               // do {
-			                   // TODO: Figure out why this always exits to -1 instead of sending the termsig??
-			               //     if (w == -1) {
-			               //         perror("waitpid");
-			               //         exit(EXIT_FAILURE); 
-			               //     }
-
-			               //     if (WIFEXITED(fg_exit_status)) {
-			               //         printf("exited, status=%d\n", WEXITSTATUS(fg_exit_status));
-			               //     } else if (WIFSIGNALED(fg_exit_status)) {
-			               //         printf("killed by signal %d\n", WTERMSIG(fg_exit_status));
-			               //     } else if (WIFSTOPPED(fg_exit_status)) {
-			               //         printf("stopped by signal %d\n", WSTOPSIG(fg_exit_status));
-			               //     } else if (WIFCONTINUED(fg_exit_status)) {
-			               //         printf("continued\n");
-			               //     }
-			   //             // } while (!WIFEXITED(fg_exit_status) && !WIFSIGNALED(fg_exit_status));
-						// }
-						// break;
-				// } // end pid switch for fork()
 			} // End Exec block
-			// command = NULL;
-	 	// 	free(arguments);
-		} // end if (command = strtok...)		
+		} // end if (command = strtok...)
+
+		free(arguments);
 	}
 }
 
@@ -423,7 +420,7 @@ int main(int argc, char const *argv[])
 	// Cite: TLPI Chapter 20, ~Page 401 and other examples
 	init_bg_process_arr();
 	signal(SIGINT, sig_handler);
-	signal(SIGCHLD, sig_handler);
+	//signal(SIGCHLD, sig_handler);
 
 	command_prompt();
 	return 0;
