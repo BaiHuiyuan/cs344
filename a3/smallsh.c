@@ -134,7 +134,7 @@ void command_prompt() {
 	const char * devnull = "/dev/null";
 
 	while(repeat == 1) {
-		printf("Hello from top of command_prompt() while loop\n");
+		// printf("\n******************\nHello from top of command_prompt() while loop\n");
 		// Variables used in parsing input	
 		int arg_count = 0, 
 			word_count = 0;
@@ -155,6 +155,7 @@ void command_prompt() {
 		printf(": ");
 
 		char input[MAX_CHAR + 1];
+		input[0] = '\0';
 		// getline(&input, &len , stdin);
 		// size_t len = 0;
 		ssize_t read;
@@ -170,13 +171,13 @@ void command_prompt() {
 			}
 		}
 
-		printf("fgets read: %s", input);
+		// printf("fgets read: %s\n", input);
 
 		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
 			arguments[arg_count++] = command;
-			printf("Inside if (command = strtok)\n");
+			// printf("Inside if (command = strtok)\n");
 
 			// Tokenize the line, storing words until all arguments are read
 			// We are allowed to assume that the command is entered without syntax errors
@@ -207,7 +208,7 @@ void command_prompt() {
 				// Set BG mode if word is '&'
 				else if (strcmp(word, "&") == 0) {
 					bg_mode = true;
-					printf("Inside ampersand!\n");
+					// printf("Inside ampersand!\n");
 					// Make sure there's nothing else after the &
 					// if (strtok(NULL, " ")) {
 					// 	printf("Usage: '&' must be last word of the command\n");
@@ -274,13 +275,13 @@ void command_prompt() {
 			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
 			***********************************************************************************/
 			else {
-				printf("pid %d is about to fork... \n", getpid());
+				// printf("pid %d is about to fork... \n", getpid());
 				fflush(stdout);
 				fflush(stdin);
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t fg_pid, cpid, w;
 				
-				printf("Inside pid %d, the return value of fork() is %d\n", getpid(), pid);
+				// printf("Inside pid %d, the return value of fork() is %d\n", getpid(), pid);
 				// If input file was given, open the input file for reading only and us it as input
 
 				// If an output file was given, open the output file for reading only and use as output
@@ -292,8 +293,8 @@ void command_prompt() {
 				// switch (pid) {
 				// 	case 0: // Child process -- attempt to execute command
 				if (pid == 0) {
-					printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
-					print_array(arguments, arg_count);
+					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
+					// print_array(arguments, arg_count);
 					execvp(command, arguments);
 					command = NULL; arguments = NULL;
 					perror("smallsh");
@@ -310,16 +311,16 @@ void command_prompt() {
 
 					// default: // Parent process will execute this code:
 				else {
-					printf("pid %d: Entering default\n", getpid());
+					// printf("pid %d: Entering default\n", getpid());
 					
 					if (bg_mode) {
 						// printf("pid %d: if (bg_mode) block\n", getpid());
 						// push_bg_pid(pid);
-						printf("pid %d: background pid is %d\n", getpid(), pid);
+						// printf("pid %d: background pid is %d\n", getpid(), pid);
 						// waitpid(pid, &fg_exit_status, WNOHANG);
 					}
 					else {
-						printf("pid %d: else block. foreground process executes this\n", getpid());
+						// printf("pid %d: else block. foreground process executes this\n", getpid());
 			                   w = waitpid(cpid, &fg_exit_status, 0);
 						// CITE: manpage for waitpid, code example on Ubuntu distro
 		               // do {
