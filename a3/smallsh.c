@@ -154,22 +154,24 @@ void command_prompt() {
 		// Read: Prompt user, get input, and null terminate their string
 		printf(": ");
 
-		// fgets(input, sizeof(input), stdin);
-		char * input = NULL;
-		size_t len = 0;
+		char input[MAX_CHAR + 1];
+		// getline(&input, &len , stdin);
+		// size_t len = 0;
 		ssize_t read;
+		fgets(input, sizeof(input), stdin);
 		// scanf("%*[^\n]%*c");
-		getline(&input, &len , stdin);
-		printf("getline read: %s", input);
 
-		if (strlen(input) > 0)
+		// If the input string was more than a single character
+		if (strlen(input) > 1) {
 			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
-
-
-		// Ignore lines that start with # as comments
-		if (input[0] == '#') {
-			continue;
+			// Ignore lines that start with # as comments
+			if (input[0] == '#') {
+				continue;
+			}
 		}
+
+		printf("fgets read: %s", input);
+
 		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " ")) {
@@ -226,7 +228,7 @@ void command_prompt() {
 			we have entered any command with multiple arguments. This fixes that bug.
 			Note that execvp() and execlp() reads from arguments until NULL is found. */
 			arguments[arg_count] = NULL;
-			free(input);
+			input;
 
 			/***********************************************************************************
 			* Built-in command evaluation. These do NOT have to worry about redirection
@@ -350,10 +352,9 @@ void command_prompt() {
 						// break;
 				// } // end pid switch for fork()
 			} // End Exec block
-			command = NULL;
-	 		free(arguments);
-		} // end if (command = strtok...)
-		
+			// command = NULL;
+	 	// 	free(arguments);
+		} // end if (command = strtok...)		
 	}
 }
 
