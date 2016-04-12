@@ -3,15 +3,18 @@
 * Author:       Shawn S Hillyer
 * Date:         , 2016
 * Course:       OSU CSS 344-400: Assignment 03
-* Description:  
-* 
-* 
-* 
+* Description:  A small shell with 3 builtin commands (cd, status, exit)
+*               Background a process by using & at end of command
+*               Quotes not supported
+*               Redirect input using < filename, output using > filename
+Usage:        
+  $ smallsh   # to launch program
+  : command [arg1 arg2 ...] [< input_file] [> output_file] [&] # comments
 *******************************************************************************/
-
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +23,6 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <signal.h>
 
 /* Constants */
 #define MAX_CHAR 2048
@@ -328,15 +330,31 @@ void command_prompt() {
 			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  for idea on how to wait() for fg
 			***********************************************************************************/
 			else {
+				// fork process, then set up in/out redirection as appropriate
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t wpid;
-				
-				// If input file was given, open the input file for reading only and us it as input
+				int fd_in, fd_out, fd_in2, fd_out2;
 
-				// If an output file was given, open the output file for reading only and use as output
+				// Cite: Redirection pg 16-17
+				// Redirect input from input_file for both fg and bg if provided
+				if (redir_input) {
+					fd_in = open(input_file, O_RDONLY);
+				}
+				// no input redirection -> bg mode needs to redirect to devnull regardless
+				else if (bg_mode) {
+					fd_in = open(devnull, O_RDONLY);
+				} 
 
-				// If process was set to run as a bg process and no output file was given
-				// then set the output of the bg process to dev/null
+				// Redirect output to output_file for both fg and bg if provided
+				if (redir_output) {
+					fd_out = open(output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+				}
+				// no output redirection -> bg mode needs to redirect to devnull regardless
+				else if (bg_mode) {
+					fd_out = open(devnull, O_RDONLY);
+				}
+				// Otherwise it's a foreground process with no redireciton, use stdin / stdout
+
 
 				// branch depending on if fork child or parent
 				
