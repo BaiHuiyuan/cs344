@@ -9,6 +9,7 @@
 * 
 *******************************************************************************/
 
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -33,12 +34,17 @@ void print_array (char ** arguments, int size);
 /* Externs */
 extern char **environ; // pointer to strings listing the environment variables
 
-/* Struct for storing dynamic array of process id's running in background */
-// Cite: CS 261 - dynamic array materials.
-// Decided to do this because I couldn't think of an easy way to keep a dynamic
-// list of bg processes to review before each prompt to check if they had ended
-// or not. Also, when exiting shell, want to be able to iterate over all bg processes
-// and kill them
+
+/*******************************************************************************
+ Struct for storing dynamic array of process id's running in background
+ Cite: CS 261 - dynamic array materials.
+ Decided to do this because I couldn't think of an easy way to keep a dynamic
+ list of bg processes to review before each prompt to check if they had ended
+ or not. Ultimately I figured out how to wait for children using wait() options
+ However, when exiting shell, I still had to iterate over the list I maintained
+ because i couldn't get wait() or waitpid() to wait until all children were done
+ Ignoring traditional stance that "globals are bad" 
+*******************************************************************************/
 struct pid_arr {
 	pid_t * pids; // array of process id's
 	int capacity;
@@ -48,16 +54,28 @@ struct pid_arr {
 // Make a single pid_arr in global scope
 struct pid_arr bg_pids;
 
+/*******************************************************************************
+void init_bg_process_arr()
+initialize a dynamic array of type pid_t. Uses global variable
+*******************************************************************************/
 void init_bg_process_arr() {
 	bg_pids.capacity = 10;
 	bg_pids.size = 0;
 	bg_pids.pids = malloc(sizeof(pid_t) * bg_pids.capacity );
 }
 
+/*******************************************************************************
+bool pid_arr_is_full()
+Returns true if the dynamic pid array is full. Uses a global variable
+*******************************************************************************/
 bool pid_arr_is_full() {
 	return (bg_pids.size >= bg_pids.capacity);
 }
 
+/*******************************************************************************
+void push_bg_pid(pid_t pid)
+push a pid onto end of dynamic array
+*******************************************************************************/
 void push_bg_pid(pid_t pid) {
 	// If array is full, reallocate to twice size
 	if (pid_arr_is_full()) {
@@ -68,6 +86,10 @@ void push_bg_pid(pid_t pid) {
 	bg_pids.pids[bg_pids.size++] = pid;
 }
 
+/*******************************************************************************
+void remove_bg_pid(pid_t pid)
+remove a pid from the bg_pids.pids[] array
+*******************************************************************************/
 void remove_bg_pid(pid_t pid) {
 	int i, j;
 	if (pid > 0) {
@@ -82,7 +104,10 @@ void remove_bg_pid(pid_t pid) {
 	}
 }
 
-// Return true of pid is in the bg_pids.pids array
+/*******************************************************************************
+bool is_bg_pid(pid_t pid)
+Return true if pid is in the bg_pids.pids array
+*******************************************************************************/
 bool is_bg_pid(pid_t pid) {
 	int i;
 	for (i = 0; i < bg_pids.size; i++) {
@@ -92,10 +117,13 @@ bool is_bg_pid(pid_t pid) {
 	return false;
 }
 
-// sends SIGKILL to all background processes of the shell
-void kill_all_bg_pids() {
-	// FG process should just handle signal as normal, need to go through bg processes
-	// Cite: TLPI Section 20.5
+/*******************************************************************************
+void kill_all_children()
+sends SIGKILL to all background processes of the shell
+Foreground processes wouldn't be running 
+Cite: TLPI Section 20.5
+*******************************************************************************/
+void kill_all_children() {
 	pid_t bg_process;
 	int i;
 	for (i = 0; i < bg_pids.size; i++) {
@@ -103,23 +131,36 @@ void kill_all_bg_pids() {
 	}
 }
 
-// Change directory to dir. Supports relatively and absolute paths inherently by calling chdir system call
+/*******************************************************************************
+void change_directory(char * dir) {
+Change directory to dir. Supports relative & absolute paths because chdir does
+*******************************************************************************/
 void change_directory(char * dir) {
 	if(!chdir(dir) == 0) {
 		// chdir was unsuccesful
 		perror("cd");
-		//printf("changed directory to %s\n", dir);
 	}
 }
 
 
-// Kill all child processes then exit. Can't t ype this in during a fg process so no need to kill fg
+/*******************************************************************************
+void exit_shell()
+Kill all child processes and free the memory used in global array
+*******************************************************************************/
 void exit_shell() {
-	kill_all_bg_pids();
+	kill_all_children();
+	free(bg_pids.pids);
 	exit(0);
 }
 
-
+/*******************************************************************************
+void check_bg_processes()
+Recursive function. Checks (without blocking) if any child process has exited.
+If so, prints the exit status or termination signal, removes from list of bg
+processes, and recurisvely calls to check for additional. Base case is when 
+no child processes have changed status (bg_pid == 0) or there are no child 
+processes that are executing (-1)
+*******************************************************************************/
 void check_bg_processes() {
 	// Cite: Slide 21 lecture 9, and the manpage for wait()
 	// iterates through all the bg id's so that we don't print foreground process?
@@ -134,6 +175,7 @@ void check_bg_processes() {
 				printf("background pid %d is done: terminated by sig %d\n", bg_pid, bg_exit_status);
 			else
 				printf("background pid %d exited with code %d\n", bg_pid, bg_exit_status);
+			remove_bg_pid(bg_pid);
 		}
 		// recursively check for additional processes, otherwise might overlook multiple finishing between prompts
 		check_bg_processes(); 
@@ -141,20 +183,21 @@ void check_bg_processes() {
 }
 
 
+/*******************************************************************************
 void command_prompt() {
-	// support MAX_CHAR characters + 1 for null byte
-	int repeat = 1;
-	int fg_exit_status;
-	const char * devnull = "/dev/null";
+REPL (Read, Evaluate, Print, Loop) function.
+Reads user input, evaluates it by parsing the input, prints output, and repeats
+Intercepts SIGINT and ignores; foreground processes do not ignore SIGINT, bg
+processes will ignore them as well.
+TODO: Would be nice to break this into smaller modules, but passing/updating
+      the strings and variables across the functions ended up being error prone
+*******************************************************************************/
+void command_prompt() {
+	bool repeat = true;
+	int fg_exit_status = 0; // holds status of fg processes, used by 'status'
+	const char * devnull = "/dev/null"; // Allocate statically; Used in redirection
 
-	while(repeat == 1) {
-		// Establish a signal handler - catches SIGINT and ignores it. Restablished every loop b/c foreground process
-		// commands will re-enable the SIG_DFL (default action) setting when they launch
-		// Cite: Slide 27 et. al. from lecture 13
-		struct sigaction act;
-		act.sa_handler = SIG_IGN;
-		sigaction(SIGINT, &act, NULL);
-
+	while(repeat) {
 		// Variables used in parsing input	
 		int arg_count = 0, 
 			word_count = 0;
@@ -162,73 +205,69 @@ void command_prompt() {
 		char * words[MAX_ARGS + 1];
 		char * command = NULL, * input_file = NULL, * output_file = NULL;
 		char input[MAX_CHAR + 1];
-		memset (input, '\0', MAX_ARGS);
+		memset (input, '\0', MAX_CHAR);
 		
 		// Booleans to track redirection mode and background vs foreground
 		bool bg_mode = false, redir_input = false, redir_output = false;
+		
+		// Establish a signal handler - catches SIGINT and ignores it. 
+		// Restablished every loop b/c foreground process commands will re-enable 
+		// the SIG_DFL (default action) setting when they launch
+		// Cite: Slide 27 et. al. from lecture 13
+		struct sigaction act;
+		act.sa_handler = SIG_IGN;
+		sigaction(SIGINT, &act, NULL);
 
-		// First check to see if any bg processes have finished. If so, keep checking.
+		// List all bg processes that finished and status
 		check_bg_processes();
 
-		// Read: Prompt user, get input, and null terminate their string
+		// Read: Prompt user, get input, null terminate string.
 		printf(": ");
 		fflush(stdout);
 		fflush(stdin);
 		fgets(input, MAX_CHAR, stdin);
 
-
-		// If the input string was more than a single character
 		if (strlen(input) > 1) {
-			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
-			// Ignore lines that start with # as comments
+			// Lines that start with '#' are comments, jump to top of REPL
 			if (input[0] == '#') {
 				continue;
 			}
+			input[strlen(input)-1] = '\0'; // removes the newline and replaces it with null
 		}
 
-		// printf("fgets read: %s\n", input);
-
-		
 		// Check that the input was not null before evaluating further
 		if (command = strtok(input, " \n")) {
+			// store command as arguments[0] then move forward to tokenize rest
 			arguments[arg_count++] = command;
-			// printf("Just ran command = strtok(input, ' '), command = '%s'\n", command);
-			// printf("Inside if (command = strtok)\n");
 
-			// Tokenize the line, storing words until all arguments are read
+			// Tokenize input, storing words until all words in words[] array
 			// We are allowed to assume that the command is entered without syntax errors
 			while(words[word_count] = strtok(NULL, " ")) {
 				char * word = words[word_count]; // Vastly improves readability in this block
 				
-				// If the current 'word' is begins with '#', change it to null and stop reading additional arguments
+				// Ignore comments and rest of line if word starts with #
 				if (word[0] == '#') {
 					word[0] = '\0';
 					break;
 				}
 
-				// If the input redirection operator is present at this word, set input_redirect to 1 (true) and
-				// grab the filename (which should be the next word)
+				// set input redirection mode and filename
 				if (strcmp(word, "<") == 0) {
 					words[++word_count] = strtok(NULL, " ");
 					input_file = words[word_count];
 					redir_input = true;
 				}
 				
-				// Likewise check if the output redireect operator was found at this word
+				// set output redirectino mode and filename
 				else if (strcmp(word, ">") == 0) {
 					words[++word_count] = strtok(NULL, " ");
 					output_file = words[word_count];
 					redir_output = true;
 				}
 
-				// Set BG mode if word is '&'
+				// Set BG mode, stop reading rest of line (must be last argument)
 				else if (strcmp(word, "&") == 0) {
 					bg_mode = true;
-					// Make sure there's nothing else after the &
-					if (strtok(NULL, " ")) {
-						printf("Usage: '&' must be last word of the command\n");
-						continue;
-					}
 					break;
 				}
 				
@@ -244,7 +283,6 @@ void command_prompt() {
 			we have entered any command with multiple arguments. This fixes that bug.
 			Note that execvp() and execlp() reads from arguments until NULL is found. */
 			arguments[arg_count] = NULL;
-			input;
 
 			/***********************************************************************************
 			* Built-in command evaluation. These do NOT have to worry about redirection
@@ -287,16 +325,12 @@ void command_prompt() {
 			/***********************************************************************************
 			* Non builtins are executed by forking and calling exec
 			* Cite: Slides from Lecture 9, especially, 28
-			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  (for launching process and waiting until it's done)
+			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  for idea on how to wait() for fg
 			***********************************************************************************/
 			else {
-				// printf("pid %d is about to fork... \n", getpid());
-				// fflush(stdout);
-				// fflush(stdin);
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
 				pid_t wpid;
 				
-				// printf("Inside pid %d, the return value of fork() is %d\n", getpid(), pid);
 				// If input file was given, open the input file for reading only and us it as input
 
 				// If an output file was given, open the output file for reading only and use as output
@@ -323,12 +357,10 @@ void command_prompt() {
 					// execvp only returns if an error has occured with value -1
 					if(fg_exit_status == -1) {
 						perror(command);
+						fg_exit_status = 1; // exit status 1 per specs
 					}
-
-					// rest of this if block only executes if execvp() failed
-					command = NULL; arguments = NULL;
 					exit(EXIT_FAILURE); 
-				}
+				} // end child process
 				
 				// fork failed
 				else if (pid == -1) {
@@ -338,12 +370,14 @@ void command_prompt() {
 				// Parent branch
 				else {
 					if (bg_mode) {
+						// remember the pid but don't wait
 						push_bg_pid(pid);
 						printf("background pid is %d\n", pid);
 					}
 					else {
-						// CITE: manpage for waitpid, code example on Ubuntu distro
-	               		wpid = waitpid(pid, &fg_exit_status, 0);
+						// Foreground process - wait until done or termed
+						// CITE: manpage for waitpid and lectures
+	               		pid = waitpid(pid, &fg_exit_status, 0);
 
 						if (pid != -1 && pid != 0) {
 							// if it was terminated by signal, display the code:
@@ -355,73 +389,71 @@ void command_prompt() {
 								fg_exit_status = WEXITSTATUS(fg_exit_status);
 							}
 						}
-			        }
-				}
+			        } // end foreground block
+				} // end parent branch
 			} // End Exec block
 		} // end if (command = strtok...)
-
-		free(arguments);
+		if(arguments) free(arguments);
 	}
 }
 
-
-// signal handler for SIGINT that does NOT terminate this shell,
-// but instead terminates the foreground process
-// Cite: TLPI Page 399
-static void sig_handler(int sig) {
-	// Restablish signal handlers for portability (without this, subsequent
-	// CTRL+C call after first was causing smallsh to terminate)
-	// printf("Calling printf from inside a sig handler\n");
-	switch (sig) {
-		case SIGINT:
-			// Basically ignore interupt signal for the shell and restablish
-			signal(SIGINT, sig_handler);
-			printf("\n");
-			break;
-
-		case SIGCHLD:
-			// Catch any child process  that ends and wait for it to kill the zombie
-			signal(SIGCHLD, sig_handler);
-
-			int exit_status;
-			pid_t pid = waitpid(0, &exit_status, 0);
-			// Print the string "background " if the process is in the bg process array
-			if (pid != -1 && pid != 0) {
-				// if (is_bg_pid(pid)) {
-				// 	return;
-				// }
-
-				if(WIFEXITED(exit_status)) {
-					printf("pid %d is done: exit value %d\n", pid, WEXITSTATUS(exit_status));
-				}
-				// if it was terminated by signal, display the code:
-				else if (WIFSIGNALED(exit_status)) {
-					printf("pid %d is done: terminated by signal %d\n", pid, WTERMSIG(exit_status));
-				}
-			}
-			break;
-	}
-}
-
-
-// Used for debugging purposes
-void print_array (char ** arguments, int n) {
-	int i = 0;
-	for (i = 0; i < n; i++) {
-		printf("arg%d: %s\n", i, arguments[i]);
-	}
-}
-
-
-// main
+/*******************************************************************************
+int main(int argc, char const *argv[])
+sets up bg_pids dynamic array and begins command prompt for shell
+*******************************************************************************/
 int main(int argc, char const *argv[])
 {
-	// Start up signal handler
 	// Cite: TLPI Chapter 20, ~Page 401 and other examples
 	init_bg_process_arr();
-	// signal(SIGINT, sig_handler);
-	// signal(SIGCHLD, sig_handler);
 
 	command_prompt();
 	return 0;
 }
+
+// signal handler for SIGINT that does NOT terminate this shell,
+// but instead terminates the foreground process
+// Cite: TLPI Page 399
+// static void sig_handler(int sig) {
+// 	// Restablish signal handlers for portability (without this, subsequent
+// 	// CTRL+C call after first was causing smallsh to terminate)
+// 	// printf("Calling printf from inside a sig handler\n");
+// 	switch (sig) {
+// 		case SIGINT:
+// 			// Basically ignore interupt signal for the shell and restablish
+// 			signal(SIGINT, sig_handler);
+// 			printf("\n");
+// 			break;
+
+// 		case SIGCHLD:
+// 			// Catch any child process  that ends and wait for it to kill the zombie
+// 			signal(SIGCHLD, sig_handler);
+
+// 			int exit_status;
+// 			pid_t pid = waitpid(0, &exit_status, 0);
+// 			// Print the string "background " if the process is in the bg process array
+// 			if (pid != -1 && pid != 0) {
+// 				// if (is_bg_pid(pid)) {
+// 				// 	return;
+// 				// }
+
+// 				if(WIFEXITED(exit_status)) {
+// 					printf("pid %d is done: exit value %d\n", pid, WEXITSTATUS(exit_status));
+// 				}
+// 				// if it was terminated by signal, display the code:
+// 				else if (WIFSIGNALED(exit_status)) {
+// 					printf("pid %d is done: terminated by signal %d\n", pid, WTERMSIG(exit_status));
+// 				}
+// 			}
+// 			break;
+// 	}
+// }
+
+
+// Used for debugging purposes
+// void print_array (char ** arguments, int n) {
+// 	int i = 0;
+// 	for (i = 0; i < n; i++) {
+// 		printf("arg%d: %s\n", i, arguments[i]);
+// 	}
+// }
+
