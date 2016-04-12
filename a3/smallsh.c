@@ -197,7 +197,7 @@ TODO: Would be nice to break this into smaller modules, but passing/updating
 void command_prompt() {
 	bool repeat = true;
 	int fg_exit_status = 0; // holds status of fg processes, used by 'status'
-	const char * devnull = "/dev/null"; // Allocate statically; Used in redirection
+	const char * devnull = "dev/null"; // Allocate statically; Used in redirection
 
 	while(repeat) {
 		// Variables used in parsing input	
@@ -339,8 +339,18 @@ void command_prompt() {
 				// Redirect input from input_file for both fg and bg if provided
 				if (redir_input) {
 					fd_in = open(input_file, O_RDONLY);
+					if (fd_in == -1) {
+						perror("open");
+						exit(1);
+					}
+					fd_in2 = dup2(fd_in, 0); // 0 = stdin
+					if (fd_in2 == -1) {
+						perror("dup2");
+						exit(2);
+					}
 				}
-				// no input redirection -> bg mode needs to redirect to devnull regardless
+
+				// bg processes need to redirect to devnull if no input file specified
 				else if (bg_mode) {
 					fd_in = open(devnull, O_RDONLY);
 				} 
@@ -348,15 +358,35 @@ void command_prompt() {
 				// Redirect output to output_file for both fg and bg if provided
 				if (redir_output) {
 					fd_out = open(output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+					if (fd_out == -1) {
+						perror("open");
+						exit(1);
+					}
+
+					fd_out2 = dup2(fd_out, 1); // 1 = stdout
+					if (fd_out2 == -1) {
+						perror("dup2");
+						exit(2);
+					}
 				}
 				// no output redirection -> bg mode needs to redirect to devnull regardless
 				else if (bg_mode) {
 					fd_out = open(devnull, O_RDONLY);
+					if (fd_out == -1) {
+						perror("open");
+						exit(1);
+					}
+
+					fd_out2 = dup2(fd_out, 1);
+					if (fd_out2 == -1) {
+						perror("dup2");
+						exit(2);
+					}
 				}
 				// Otherwise it's a foreground process with no redireciton, use stdin / stdout
 
 
-				// branch depending on if fork child or parent
+				
 				
 				// Child process -- attempt to execute command
 				if (pid == 0) {
@@ -411,7 +441,7 @@ void command_prompt() {
 				} // end parent branch
 			} // End Exec block
 		} // end if (command = strtok...)
-		if(arguments) free(arguments);
+		if(arguments) free(arguments);	
 	}
 }
 
