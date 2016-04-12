@@ -310,10 +310,13 @@ void command_prompt() {
 				if (pid == 0) {
 					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
 					// print_array(arguments, arg_count);
-					// Allow signal interupt to come in for the child process
-					act.sa_handler = SIG_DFL;
-					act.sa_flags = 0;
-					sigaction(SIGINT, &act, NULL);
+
+					// Allow SIGINT if running in foreground
+					if (!bg_mode) {
+						act.sa_handler = SIG_DFL;
+						act.sa_flags = 0;
+						sigaction(SIGINT, &act, NULL);
+					}
 
 					fg_exit_status = execvp(command, arguments);
 
