@@ -131,40 +131,13 @@ void check_bg_processes() {
 	if (bg_pid != 0 && bg_pid != -1) {
 		if (bg_pid > 0) {
 			if (bg_exit_status !=0)
-				printf("bg pid %d terminated by sig %d\n", bg_pid, bg_exit_status);
+				printf("background pid %d is done: terminated by sig %d\n", bg_pid, bg_exit_status);
 			else
-				printf("bg pid %d exited with code %d\n", bg_pid, bg_exit_status);
-		} 
+				printf("background pid %d exited with code %d\n", bg_pid, bg_exit_status);
+		}
+		// recursively check for additional processes, otherwise might overlook multiple finishing between prompts
+		check_bg_processes(); 
 	}
-
-	// for (i = 0; i < bg_pids.size; i++) {
-	// 	// printf("Checking pid %d\n", bg_pids.pids[i]);
-	// 	bg_pid = waitpid(bg_pids.pids[i], &bg_exit_status, WNOHANG);
-	// 	// printf("bg_pid = waitpid() returns %d\n", bg_pid);
-		
-	// 	// If bg_pid has not already been reported and has had a status change, report the status and remove
-	// 	if (bg_pid > 0) {
-	// 		if(WIFEXITED(bg_exit_status)) {
-	// 			printf("background pid %d is done: exit value %d\n", bg_pids.pids[i], WEXITSTATUS(bg_exit_status));
-	// 		}
-	// 		else if (WIFSIGNALED(bg_exit_status)) {
-	// 			printf("background pid %d is done: terminated by signal %d\n", bg_pids.pids[i], WTERMSIG(bg_exit_status));
-	// 		}
-	// 		else if (WIFSTOPPED(bg_exit_status)) {
-	// 			printf("background pid %d is done: stopped by signal %d\n", bg_pids.pids[i], WSTOPSIG(bg_exit_status));
-	// 		}
-	// 		remove_bg_pid(bg_pids.pids[i]);
-	// 	}
-
-	// 	// Somehow some bg pid's that were terminated were staying in list, this if-block seems to fix
-	// 	if (bg_pid == -1) {
-	// 		remove_bg_pid(bg_pids.pids[i]);
-	// 	}
-		
-	// 	// if (bg_pid != 0 && bg_pid != -1) {
-	// 		// If wait exited with a status code, display it:
-	// 	// }
-	// }
 }
 
 
