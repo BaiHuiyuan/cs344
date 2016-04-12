@@ -23,7 +23,7 @@ ZIP = hillyers.smallsh.zip
 	
 
 default:
-	${CC} ${CFLAGS} ${SRCS} ${HEADERS} -o ${PROGS}
+	${CC} ${CFLAGS} ${SRCS} ${HEADERS} -o ${PROGS} -D_XOPEN_SOURCE
 
 zip:
 	zip ${ZIP} ${SRCS} ${HEADERS} ${DOCS} makefile
