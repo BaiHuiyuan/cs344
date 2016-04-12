@@ -68,6 +68,20 @@ void push_bg_pid(pid_t pid) {
 	bg_pids.pids[bg_pids.size++] = pid;
 }
 
+void remove_bg_pid(pid_t pid) {
+	int i, j;
+	if (pid > 0) {
+		// printf("removing pid %d\n", pid);
+		for (i = 0; i < bg_pids.size; i++) {
+			if (bg_pids.pids[i] == pid) {
+				bg_pids.size--;
+				for (j = i; j < bg_pids.size; j++)
+					bg_pids.pids[j] = bg_pids.pids[j + 1];
+			}
+		}
+	}
+}
+
 // Return true of pid is in the bg_pids.pids array
 bool is_bg_pid(pid_t pid) {
 	int i;
@@ -116,17 +130,33 @@ void check_bg_processes() {
 	int bg_exit_status;
 
 	for (i = 0; i < bg_pids.size; i++) {
+		// printf("Checking pid %d\n", bg_pids.pids[i]);
 		bg_pid = waitpid(bg_pids.pids[i], &bg_exit_status, WNOHANG);
-		if (bg_pid != 0 && bg_pid != -1) {
-			// If wait exited with a status code, display it:
+		// printf("bg_pid = waitpid() returns %d\n", bg_pid);
+		
+		// If bg_pid has not already been reported and has had a status change, report the status and remove
+		if (bg_pid != -1 && bg_pid != 0) {
+			printf("Some shit went down.\n\n\n");
 			if(WIFEXITED(bg_exit_status)) {
-				printf("background pid %d is done: exit value %d\n", bg_pid, WEXITSTATUS(bg_exit_status));
+				printf("background pid %d is done: exit value %d\n", bg_pids.pids[i], WEXITSTATUS(bg_exit_status));
 			}
-			// if it was terminated by signal, display the code:
 			else if (WIFSIGNALED(bg_exit_status)) {
-				printf("background pid %d is done: terminated by signal %d\n", bg_pid, WTERMSIG(bg_exit_status));
+				printf("background pid %d is done: terminated by signal %d\n", bg_pids.pids[i], WTERMSIG(bg_exit_status));
 			}
+			else if (WIFSTOPPED(bg_exit_status)) {
+				printf("background pid %d is done: stopped by signal %d\n", bg_pids.pids[i], WSTOPSIG(bg_exit_status));
+			}
+			remove_bg_pid(bg_pids.pids[i]);
 		}
+
+		// Somehow some bg pid's that were terminated were staying in list, this if-block seems to fix
+		if (bg_pid == -1) {
+			remove_bg_pid(bg_pids.pids[i]);
+		}
+		
+		// if (bg_pid != 0 && bg_pid != -1) {
+			// If wait exited with a status code, display it:
+		// }
 	}
 }
 
@@ -297,8 +327,8 @@ void command_prompt() {
 				// then set the output of the bg process to dev/null
 
 				// branch depending on if fork child or parent
-				// switch (pid) {
-				// 	case 0: // Child process -- attempt to execute command
+				
+				// Child process -- attempt to execute command
 				if (pid == 0) {
 					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
 					// print_array(arguments, arg_count);
@@ -310,28 +340,37 @@ void command_prompt() {
 					printf("Do not see me!! Right after execvp failure.\n");
 					// break; 
 				}
-					// case -1: // Fork() failed to create child, report the error
+				
+				// fork failed
 				else if (pid == -1) {
 					perror("fork()");
 					// break;
 				}
 
-					// default: // Parent process will execute this code:
+				// Parent branch
 				else {
-					// printf("pid %d: Entering default\n", getpid());
-					
 					if (bg_mode) {
-						// printf("pid %d: if (bg_mode) block\n", getpid());
 						push_bg_pid(pid);
 						printf("pid %d: background pid is %d\n", getpid(), pid);
-						waitpid(pid, &fg_exit_status, WNOHANG);
+						// waitpid(pid, &fg_exit_status, WNOHANG);
 					}
 					else {
 						// CITE: manpage for waitpid, code example on Ubuntu distro
-                   		w = waitpid(cpid, &fg_exit_status, 0);
-		               
+	               		w = waitpid(cpid, &fg_exit_status, 0);
+		               	int exit_status;
+						pid_t pid = waitpid(0, &exit_status, 0);
+						// Print the string "background " if the process is in the bg process array
+						if (pid != -1 && pid != 0) {
+							if(WIFEXITED(exit_status)) {
+								printf("HERE pid %d is done: exit value %d\n", pid, WEXITSTATUS(exit_status));
+							}
+							// if it was terminated by signal, display the code:
+							else if (WIFSIGNALED(exit_status)) {
+								printf("HERE pid %d is done: terminated by signal %d\n", pid, WTERMSIG(exit_status));
+							}
+						}
+		                // Should print the signal that stopped the process
 		            	// do {
-		             //       // TODO: Figure out why this always exits to -1 instead of sending the termsig??
 		             //       if (w == -1) {
 		             //           perror("waitpid");
 		             //           exit(EXIT_FAILURE); 
@@ -363,6 +402,7 @@ void command_prompt() {
 static void sig_handler(int sig) {
 	// Restablish signal handlers for portability (without this, subsequent
 	// CTRL+C call after first was causing smallsh to terminate)
+	// printf("Calling printf from inside a sig handler\n");
 	switch (sig) {
 		case SIGINT:
 			// Basically ignore interupt signal for the shell and restablish
@@ -378,9 +418,9 @@ static void sig_handler(int sig) {
 			pid_t pid = waitpid(0, &exit_status, 0);
 			// Print the string "background " if the process is in the bg process array
 			if (pid != -1 && pid != 0) {
-				if (is_bg_pid(pid)) {
-					return;
-				}
+				// if (is_bg_pid(pid)) {
+				// 	return;
+				// }
 
 				if(WIFEXITED(exit_status)) {
 					printf("pid %d is done: exit value %d\n", pid, WEXITSTATUS(exit_status));
@@ -392,15 +432,6 @@ static void sig_handler(int sig) {
 			}
 			break;
 	}
-	// if (sig == SIGINT) {
-	// 	// Basically ignore interupt signal for the shell and restablish
-	// 	signal(SIGINT, sig_handler);
-	// 	printf("\n");
-	// 	// command_prompt();
-	// }
-	// else {
-	// 	printf("Signal: %d", sig);
-	// }
 }
 
 
@@ -420,7 +451,7 @@ int main(int argc, char const *argv[])
 	// Cite: TLPI Chapter 20, ~Page 401 and other examples
 	init_bg_process_arr();
 	signal(SIGINT, sig_handler);
-	//signal(SIGCHLD, sig_handler);
+	// signal(SIGCHLD, sig_handler);
 
 	command_prompt();
 	return 0;
