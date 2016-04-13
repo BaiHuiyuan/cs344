@@ -197,7 +197,7 @@ TODO: Would be nice to break this into smaller modules, but passing/updating
 void command_prompt() {
 	bool repeat = true;
 	int fg_exit_status = 0; // holds status of fg processes, used by 'status'
-	const char * devnull = "dev/null"; // Allocate statically; Used in redirection
+	const char * devnull = "/dev/null"; // Allocate statically; Used in redirection
 
 	while(repeat) {
 		// Variables used in parsing input	
@@ -335,63 +335,75 @@ void command_prompt() {
 				pid_t wpid;
 				int fd_in, fd_out, fd_in2, fd_out2;
 
-				// Cite: Redirection pg 16-17
-				// Redirect input from input_file for both fg and bg if provided
-				if (redir_input) {
-					fd_in = open(input_file, O_RDONLY);
-					if (fd_in == -1) {
-						perror("open");
-						exit(1);
-					}
-					fd_in2 = dup2(fd_in, 0); // 0 = stdin
-					if (fd_in2 == -1) {
-						perror("dup2");
-						exit(2);
-					}
-				}
-
-				// bg processes need to redirect to devnull if no input file specified
-				else if (bg_mode) {
-					fd_in = open(devnull, O_RDONLY);
-				} 
-
-				// Redirect output to output_file for both fg and bg if provided
-				if (redir_output) {
-					fd_out = open(output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-					if (fd_out == -1) {
-						perror("open");
-						exit(1);
-					}
-
-					fd_out2 = dup2(fd_out, 1); // 1 = stdout
-					if (fd_out2 == -1) {
-						perror("dup2");
-						exit(2);
-					}
-				}
-				// no output redirection -> bg mode needs to redirect to devnull regardless
-				else if (bg_mode) {
-					fd_out = open(devnull, O_RDONLY);
-					if (fd_out == -1) {
-						perror("open");
-						exit(1);
-					}
-
-					fd_out2 = dup2(fd_out, 1);
-					if (fd_out2 == -1) {
-						perror("dup2");
-						exit(2);
-					}
-				}
-				// Otherwise it's a foreground process with no redireciton, use stdin / stdout
-
-
-				
-				
 				// Child process -- attempt to execute command
 				if (pid == 0) {
 					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
 					// print_array(arguments, arg_count);
+
+// TODO DELETE DEBUG BLOCK
+//					printf("bg_mode: %d. redir_input: %d. input_file: %s. redir_output: %d. output_file: %s.\n", bg_mode, redir_input, input_file, redir_output, output_file);
+// TODO: refactor START_REFACTOR
+					// Cite: Redirection pg 16-17
+					// Redirect input from input_file for both fg and bg if provided
+					if (redir_input) {
+						fd_in = open(input_file, O_RDONLY);
+						if (fd_in == -1) {
+							perror("open");
+							exit(1);
+						}
+						fd_in2 = dup2(fd_in, 0); // 0 = stdin
+						if (fd_in2 == -1) {
+							perror("dup2");
+							exit(2);
+						}
+					}
+
+					// bg processes need to redirect to devnull if no input file specified
+					else if (bg_mode) {
+						fd_in = open("/dev/null", O_RDONLY);
+						if (fd_in == -1) {
+							perror("open");
+							exit(1);
+						}
+
+						fd_in2 = dup2(fd_in, 1);
+						if (fd_in2 == -1) {
+							perror("dup2");
+							exit(2);
+						}
+					} 
+
+					// Redirect output to output_file for both fg and bg if provided
+					if (redir_output) {
+						fd_out = open(output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+						if (fd_out == -1) {
+							perror("open");
+							exit(1);
+						}
+
+						fd_out2 = dup2(fd_out, 1); // 1 = stdout
+						if (fd_out2 == -1) {
+							perror("dup2");
+							exit(2);
+						}
+					}
+
+					// no output redirection -> bg mode needs to redirect to devnull regardless
+					else if (bg_mode) {
+						fd_out = open("/dev/null", O_WRONLY);
+						if (fd_out == -1) {
+							perror("open");
+							exit(1);
+						}
+
+						fd_out2 = dup2(fd_out, 1);
+						if (fd_out2 == -1) {
+							perror("dup2");
+							exit(2);
+						}
+					}
+					// Otherwise it's a foreground process with no redireciton, use stdin / stdout
+// TODO: refactor END_REFACTOR
 
 					// Allow SIGINT if running in foreground
 					if (!bg_mode) {
