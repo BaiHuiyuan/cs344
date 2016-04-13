@@ -325,7 +325,7 @@ void command_prompt() {
 
 
 			/***********************************************************************************
-			* Non builtins are executed by forking and calling exec
+			* Non-builtins are executed by forking and calling execvp() which will check PATH
 			* Cite: Slides from Lecture 9, especially, 28
 			* Cite: brennan.io/2015/01/16/write-a-shell-in-c/  for idea on how to wait() for fg
 			***********************************************************************************/
@@ -337,15 +337,16 @@ void command_prompt() {
 
 				// Child process -- attempt to execute command
 				if (pid == 0) {
-					// printf("pid %d: Child. Attempt to exec %s with \n", getpid(), command);
-					// print_array(arguments, arg_count);
-
-// TODO DELETE DEBUG BLOCK
-//					printf("bg_mode: %d. redir_input: %d. input_file: %s. redir_output: %d. output_file: %s.\n", bg_mode, redir_input, input_file, redir_output, output_file);
-// TODO: refactor START_REFACTOR
 					// Cite: Redirection pg 16-17
-					// Redirect input from input_file for both fg and bg if provided
-					if (redir_input) {
+					// if we're in background mode and no input || output redirection was set, need
+					// to send it to /dev/null file
+					if (!redir_input && bg_mode)
+						input_file = "/dev/null";
+					if (!redir_output && bg_mode)
+						output_file = "/dev/null";
+
+					// Open input_file if not null (if it's null, then some file was provided or its foreground)
+					if (input_file) {
 						fd_in = open(input_file, O_RDONLY);
 						if (fd_in == -1) {
 							perror("open");
@@ -358,23 +359,8 @@ void command_prompt() {
 						}
 					}
 
-					// bg processes need to redirect to devnull if no input file specified
-					else if (bg_mode) {
-						fd_in = open("/dev/null", O_RDONLY);
-						if (fd_in == -1) {
-							perror("open");
-							exit(1);
-						}
-
-						fd_in2 = dup2(fd_in, 1);
-						if (fd_in2 == -1) {
-							perror("dup2");
-							exit(2);
-						}
-					} 
-
-					// Redirect output to output_file for both fg and bg if provided
-					if (redir_output) {
+					// Open output_file if not null (if it's null, then some file was provided or its foreground)
+					if (output_file) {
 						fd_out = open(output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
 						if (fd_out == -1) {
 							perror("open");
@@ -385,25 +371,8 @@ void command_prompt() {
 						if (fd_out2 == -1) {
 							perror("dup2");
 							exit(2);
-						}
+						}					
 					}
-
-					// no output redirection -> bg mode needs to redirect to devnull regardless
-					else if (bg_mode) {
-						fd_out = open("/dev/null", O_WRONLY);
-						if (fd_out == -1) {
-							perror("open");
-							exit(1);
-						}
-
-						fd_out2 = dup2(fd_out, 1);
-						if (fd_out2 == -1) {
-							perror("dup2");
-							exit(2);
-						}
-					}
-					// Otherwise it's a foreground process with no redireciton, use stdin / stdout
-// TODO: refactor END_REFACTOR
 
 					// Allow SIGINT if running in foreground
 					if (!bg_mode) {
