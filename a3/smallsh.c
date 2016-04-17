@@ -1,7 +1,7 @@
 /*******************************************************************************
 * File:         smallsh.c
 * Author:       Shawn S Hillyer
-* Date:         , 2016
+* Date:         May 5, 2016
 * Course:       OSU CSS 344-400: Assignment 03
 * Description:  A small shell with 3 builtin commands (cd, status, exit)
 *               Background a process by using & at end of command
@@ -438,51 +438,3 @@ int main(int argc, char const *argv[])
 	command_prompt();
 	return 0;
 }
-
-// signal handler for SIGINT that does NOT terminate this shell,
-// but instead terminates the foreground process
-// Cite: TLPI Page 399
-// static void sig_handler(int sig) {
-// 	// Restablish signal handlers for portability (without this, subsequent
-// 	// CTRL+C call after first was causing smallsh to terminate)
-// 	// printf("Calling printf from inside a sig handler\n");
-// 	switch (sig) {
-// 		case SIGINT:
-// 			// Basically ignore interupt signal for the shell and restablish
-// 			signal(SIGINT, sig_handler);
-// 			printf("\n");
-// 			break;
-
-// 		case SIGCHLD:
-// 			// Catch any child process  that ends and wait for it to kill the zombie
-// 			signal(SIGCHLD, sig_handler);
-
-// 			int exit_status;
-// 			pid_t pid = waitpid(0, &exit_status, 0);
-// 			// Print the string "background " if the process is in the bg process array
-// 			if (pid != -1 && pid != 0) {
-// 				// if (is_bg_pid(pid)) {
-// 				// 	return;
-// 				// }
-
-// 				if(WIFEXITED(exit_status)) {
-// 					printf("pid %d is done: exit value %d\n", pid, WEXITSTATUS(exit_status));
-// 				}
-// 				// if it was terminated by signal, display the code:
-// 				else if (WIFSIGNALED(exit_status)) {
-// 					printf("pid %d is done: terminated by signal %d\n", pid, WTERMSIG(exit_status));
-// 				}
-// 			}
-// 			break;
-// 	}
-// }
-
-
-// Used for debugging purposes
-// void print_array (char ** arguments, int n) {
-// 	int i = 0;
-// 	for (i = 0; i < n; i++) {
-// 		printf("arg%d: %s\n", i, arguments[i]);
-// 	}
-// }
-

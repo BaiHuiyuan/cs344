@@ -19,7 +19,7 @@ PROGS = ${PROG1}
 DOC1 = readme.txt
 DOCS = ${DOC1}
 
-ZIP = hillyers.smallsh.zip
+ZIP = hillyers-a3.zip
 	
 
 default:
