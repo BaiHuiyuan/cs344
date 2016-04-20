@@ -1,7 +1,7 @@
 /*******************************************************************************
 * File:         hillyers.adventure.c
 * Author:       Shawn S Hillyer
-* Date:         April 24, 2016
+* Date:         April 19, 2016
 * Course:       OSU CSS 344-400: Assignment 02
 * Description:  
 * Creates a series of files that hold descriptions of "rooms" and how they are
