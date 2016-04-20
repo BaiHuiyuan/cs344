@@ -60,7 +60,6 @@ void swap(int arr[], int i, int j);
 void generate_connections(struct Room rooms[], int size);
 void write_to_file(struct Room rooms[], int size);
 char * get_directory_name();
-void print_rooms(struct Room rooms[], int size);
 void print_location(struct Room rooms[], int i);
 int is_connected(struct Room rooms[], int size, int i, char user_string[]);
 void print_congratulations(int steps, char ** path);
@@ -376,7 +375,6 @@ void play_game() {
 	// Allocate array of Room structs, read the data from file structure back in
 	struct Room * rooms = malloc (sizeof(struct Room) * MAX_ROOMS);
 	read_from_file(rooms, MAX_ROOMS);
-	// print_rooms(rooms, MAX_ROOMS); // Debug statement
 
 	// Init win condition bool, setup lookup table for Room names into index
 	int player_has_won = 0; // 1 = true, 0 = false
@@ -529,22 +527,6 @@ void print_congratulations(int steps, char ** path) {
 
 
 /*******************************************************************************
-* print_rooms()
-* Used in debugging / playtesting / verifying rooms are deserialized properly.
-*******************************************************************************/
-void print_rooms(struct Room rooms[], int size) {
-	int i, j;
-	for (i = 0; i < size; i++) {
-		printf("ROOM NAME: %s\n", rooms[i].name);
-		for (j = 0; j < rooms[i].connections; j++) {
-			printf("CONNECTION %d: %s\n", (j+1), rooms[i].conn_names[j]);
-		}
-		printf("ROOM TYPE: %d\n\n", rooms[i].type);
-	}
-}
-
-
-/*******************************************************************************
 * main()
 * Creates a series of files that hold descriptions of "rooms" and how they are
 * connected; offer to player an interface for playing game using generated
@@ -554,8 +536,8 @@ int main(int argc, char const *argv[]) {
 	// Seed random numbers
 	srand(time(NULL));
 
-	struct Room rooms[MAX_ROOMS];
 	// Generate rooms
+	struct Room rooms[MAX_ROOMS];
 	generate_rooms(rooms, MAX_ROOMS);
 
 	// Initiate player input loop / main 'game' logic
