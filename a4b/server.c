@@ -12,35 +12,32 @@ int main(int argc, char const *argv[]) {
 	// Verify Arguments are valid
 	check_argument_length(argc, 2, "Usage: server [socket]\n");
 
-	// store the socket (port). Cite: man strol, example section
-	char *endptr;
-	errno = 0;
-	int port = strtol(argv[1], &endptr, 10);
+
+	// parse port from command line argument and check result
+	errno = 0; // Always set to 0 before a system call if checking; cite: manpage for errno.h
+	int port = strtol(argv[1], NULL, 10);
 	validate_port(port, errno);
 
-	// if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN))
-	// 	|| (errno != 0 && port == 0)) {
-	// 	perror_exit("strtol", EXIT_FAILURE);
-	// }
-
-
-	// Open TCP socket stream; Cite: Slide 10 Unix Networkin 2 lecture
-	int sfd, cfd;  // listening socket and connection file descriptor
-	ssize_t num_read;
+	int sfd, cfd;  // listening socket file descriptor and connection file descriptor
+	ssize_t num_read; // # of bytes read
 	char buf[BUF_SIZE];
 	struct sockaddr_in server, client; // this machine and remote machines address
+
+
+	// Initialize struct sockaddr_in before making and binding socket
+	// Cite: lecture slides and man pages and beej guide
+	memset(&server, 0, sizeof(struct sockaddr_in)); // clear structure
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port); // Ensure port is stored in network byte order
+	server.sin_addr.s_addr = INADDR_ANY;
+
 	
-	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	// Now open a TCP socket stream; Cite: Slide 10 Unix Networking 2 (lecture)
+	if ((sfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
 		perror_exit("socket", EXIT_FAILURE);
 
 
-	// Initialize struct sockaddr_in before binding socket
-	memset(&server, 0, sizeof(struct sockaddr_in)); // clear structure
-	server.sin_family = AF_INET;
-	// in next line: htons() = Host TO Network Short -- ensures using network byte ordering
-	server.sin_port = htons(port); 
-	server.sin_addr.s_addr = INADDR_ANY;
-
+	// Bind the server listening socket using 'server' address struct
 	if ( bind(sfd, (struct sockaddr *) &server, sizeof(struct sockaddr_in)) == -1)
 		perror_exit("bind", EXIT_FAILURE);
 	
@@ -49,11 +46,16 @@ int main(int argc, char const *argv[]) {
 	if ( listen(sfd, 5) == -1)
 		perror_exit("listen", EXIT_FAILURE);
 
-	// Handle clients iteratively. cite: TLPI pg 1168 and beej guide
-	for (;;) {
+
+	// Handle clients iteratively. 
+	// Cite: TLPI pg 1168 and beej guide, Slide 12+ of lecture 17
+	while (1) {
 		// Accept a connection on a new socket (cfd)
-		if ( (cfd = accept(sfd, NULL, NULL)) == -1)
-			perror_exit("accept", EXIT_FAILURE);
+		if ( (cfd = accept(sfd, NULL, NULL)) == -1) {
+			// perror_exit("accept", EXIT_FAILURE);
+			perror("accept");
+			continue;
+		}
 
 		// Echo data from connected socket to stdout until EOF
 		while ( (num_read = read(cfd, buf, BUF_SIZE)) > 0)

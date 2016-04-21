@@ -25,7 +25,7 @@ ZIP = hillyers.otp.zip
 	
 
 default:
-	#${CC} ${CFLAGS} ${SRC1} ${HEADERS} -o ${PROG1} -D_XOPEN_SOURCE
+	${CC} ${CFLAGS} ${SRC1} ${HEADERS} -o ${PROG1} -D_XOPEN_SOURCE
 	${CC} ${CFLAGS} ${SRC2} ${HEADERS} -o ${PROG2} -D_XOPEN_SOURCE
 
 

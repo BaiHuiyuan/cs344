@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +28,10 @@ void perror_exit(char * message, int exit_value) {
 	exit(exit_value);
 }
 
-void validate_port(int port, int errno) {
-	if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0) || (port > 65535 || port < 0)) {
+// confirm that port was parsed within valid range for ports
+// Cite: man strtol, example section
+void validate_port(int port, int err) {
+	if ((err == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (err != 0 && port == 0) || (port > 65535 || port < 1)) {
 			perror_exit("strtol", EXIT_FAILURE);
 	}
 }
