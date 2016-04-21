@@ -35,11 +35,12 @@ int main(int argc, char const *argv[]) {
 
 
 	// Variables for sockets and the server address
-	int sfd, cfd, status; 
+	int sfd, status; 
 	struct addrinfo hints, *servinfo, *p;
 
 
 	// 0 out hints struct then init to connect to localhost via TCP
+	// Cite: lecture slides and man pages and beej guide
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET; // AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
