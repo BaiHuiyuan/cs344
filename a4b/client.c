@@ -1,7 +1,18 @@
-// CLIENT
-// Cite: Overall flow of a socket-based client/server pair of programs: 
-//       beej.us/guide/bgipc/output/html/multipage/unixsock.html
-
+/*******************************************************************************
+* File:         server.c
+* Author:       Shawn S Hillyer
+* Date:         May, 2016
+* Course:       OSU CSS 344-400: Assignment 04
+* Description:  
+*               
+*               
+*               
+* Usage:        
+*               
+*               
+* Cite:         Overall flow of a socket-based client/server pair of programs: 
+                beej.us/guide/bgipc/output/html/multipage/unixsock.html  
+*******************************************************************************/
 
 #include "otp.h"
 

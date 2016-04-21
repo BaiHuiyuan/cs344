@@ -1,11 +1,20 @@
-// SERVER
-// Cite: Overall flow of a socket-based client/server pair of programs: 
-//       beej.us/guide/bgipc/output/html/multipage/unixsock.html
-
+/*******************************************************************************
+* File:         server.c
+* Author:       Shawn S Hillyer
+* Date:         May, 2016
+* Course:       OSU CSS 344-400: Assignment 04
+* Description:  
+*               
+*               
+*               
+* Usage:        
+*               
+*               
+* Cite:         Overall flow of a socket-based client/server pair of programs: 
+                beej.us/guide/bgipc/output/html/multipage/unixsock.html  
+*******************************************************************************/
 
 #include "otp.h"
-
-
 
 int main(int argc, char const *argv[]) {
 	
@@ -14,18 +23,20 @@ int main(int argc, char const *argv[]) {
 
 
 	// parse port from command line argument and check result
-	errno = 0; // Always set to 0 before a system call if checking; cite: manpage for errno.h
+	errno = 0; // 0 out before evaluating the call to strtol
 	int port = strtol(argv[1], NULL, 10);
 	validate_port(port, errno);
 
-	int sfd, cfd;  // listening socket file descriptor and connection file descriptor
+
+	// Variables for sockets and the server
+	int sfd, cfd;  
 	ssize_t num_read; // # of bytes read
 	char buf[BUF_SIZE];
-	struct sockaddr_in server, client; // this machine and remote machines address
 
 
 	// Initialize struct sockaddr_in before making and binding socket
 	// Cite: lecture slides and man pages and beej guide
+	struct sockaddr_in server;
 	memset(&server, 0, sizeof(struct sockaddr_in)); // clear structure
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port); // Ensure port is stored in network byte order
