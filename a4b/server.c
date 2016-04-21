@@ -7,8 +7,8 @@
 *               
 *               
 *               
-* Usage:        
-*               
+* Usage:        server <port_number>
+*               Port must be in the range [MAX_PORT_NUMBER .. ]
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
                 beej.us/guide/bgipc/output/html/multipage/unixsock.html  
@@ -16,6 +16,10 @@
 
 #include "otp.h"
 
+/*******************************************************************************
+* main()
+* Creates a socket and listens for incoming connections
+*******************************************************************************/
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
@@ -28,15 +32,15 @@ int main(int argc, char const *argv[]) {
 	validate_port(port, errno);
 
 
-	// Variables for sockets and the server
+	// Variables for sockets and the server address
 	int sfd, cfd;  
 	ssize_t num_read; // # of bytes read
 	char buf[BUF_SIZE];
+	struct sockaddr_in server;
 
 
 	// Initialize struct sockaddr_in before making and binding socket
 	// Cite: lecture slides and man pages and beej guide
-	struct sockaddr_in server;
 	memset(&server, 0, sizeof(struct sockaddr_in)); // clear structure
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port); // Ensure port is stored in network byte order
@@ -48,7 +52,7 @@ int main(int argc, char const *argv[]) {
 		perror_exit("socket", EXIT_FAILURE);
 
 
-	// Bind the server listening socket using 'server' address struct
+	// Bind the server socket
 	if ( bind(sfd, (struct sockaddr *) &server, sizeof(struct sockaddr_in)) == -1)
 		perror_exit("bind", EXIT_FAILURE);
 	
@@ -61,9 +65,9 @@ int main(int argc, char const *argv[]) {
 	// Handle clients iteratively. 
 	// Cite: TLPI pg 1168 and beej guide, Slide 12+ of lecture 17
 	while (1) {
-		// Accept a connection on a new socket (cfd)
+		// Accept a connection on a new socket (cfd) from queue
+		// Will block until a connection comes in.
 		if ( (cfd = accept(sfd, NULL, NULL)) == -1) {
-			// perror_exit("accept", EXIT_FAILURE);
 			perror("accept");
 			continue;
 		}
@@ -78,7 +82,7 @@ int main(int argc, char const *argv[]) {
 		if (num_read == -1)
 			perror_exit("read", EXIT_FAILURE);
 
-		// otherwise reached EOF. close connection socket ("cfd")
+		// otherwise read() has reached EOF. close connection socket ("cfd")
 		if (close(cfd) == -1)
 			perror_exit("close", EXIT_FAILURE);
 	}
