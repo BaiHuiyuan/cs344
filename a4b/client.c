@@ -110,17 +110,17 @@ int main(int argc, char const *argv[]) {
 	// Send the message and key to server for processing	
 	int len, bytes_sent, bytes_received;
 
-	// TODO: Copy pasted code --> make it a function if we pass both strings like this
-	// TODO: While making a functino, add error checking
+	// Message
 	len = strlen(message);
 	if(bytes_sent = send(sfd, message, len, 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
+	// Key 
 	len = strlen(key);
 	if(bytes_sent = send(sfd, key, len, 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
-	// Receive the response from the server and print to screen.
+	// Receive response from the server and print to screen.
 	char resp[BUF_SIZE];
 	bytes_received = read(sfd, resp, BUF_SIZE); // TODO ERROR CHECKING
 	printf("DEBUG: client: received 'response': %s\n", resp);

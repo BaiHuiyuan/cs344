@@ -16,15 +16,15 @@
 
 #include "otp.h"
 
-// int read_str_from_socket(char * str) {	
-// 	int n_read;
-// 	// Read the first write to socket - this should be the message
-// 	if ( (n_read = read(cfd, str, BUF_SIZE)) == -1) {
-// 		perror("read");
-// 		return n_read; // signal failure to caller
-// 	}
-// 	return 0; // signal succes
-// }
+char * encrypt_string(char * str) {
+	char * str_encr = malloc (sizeof (char) * strlen(str));
+
+	int i = 0;
+	while (str[i] != '\0') {
+		str_encr[i] = str[i++] + 1;
+	}
+	return str_encr;
+}
 
 
 /*******************************************************************************
@@ -108,7 +108,8 @@ int main(int argc, char const *argv[]) {
 		}
 		printf("DEBUG: server: received 'key': %s\n", key);
 
-		char * resp = "Hello, I am the server's response string.\n";
+		char * resp = encrypt_string(msg);
+		// printf("DEBUG: server: encrypt_string(msg): %s\n", resp);
 
 		if (num_written = write(cfd, resp, strlen(resp)) == -1) {
 			perror("write");
