@@ -30,7 +30,7 @@
 
 #define MIN_PORT_NUMBER 1
 #define MAX_PORT_NUMBER 65535
-#define BUF_SIZE 100
+#define BUF_SIZE 1000000
 
 /*******************************************************************************
 * void check_argument_length(int arg_c, int req, const char * message)

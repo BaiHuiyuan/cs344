@@ -22,15 +22,18 @@
 * 
 *******************************************************************************/
 char * get_string_from_file(const char * fname) {
-	// FILE * file = fopen(fname, "r");
+	FILE * file;
+	if (!(file = fopen(fname, "r"))) {
+		perror_exit("fopen", EXIT_FAILURE);
+	}
 
-
-	char * file_contents = "hello from get_string_from_file";
+	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
+	fgets(file_contents, BUF_SIZE - 1, file);
 	char * return_string = malloc(sizeof(char) * strlen(file_contents));
 	return_string = file_contents;
 
-	// if (file)
-		// fclose(file);
+	if (file)
+		fclose(file);
 
 	return return_string;
 }
@@ -53,10 +56,11 @@ int main(int argc, char const *argv[]) {
 	const char * port_str = argv[3];
 
 	char * message = get_string_from_file(argv[1]);
+	char * key = get_string_from_file(argv[2]);
 
 	// Variables for sockets and the server address
 	int sfd, status; 
-	struct addrinfo hints, *servinfo, *p;
+	struct addrinfo hints, *servinfo;
 
 
 	// 0 out hints struct then init to connect to localhost via TCP
@@ -90,10 +94,14 @@ int main(int argc, char const *argv[]) {
 	int len, bytes_sent;
 	len = strlen(message);
 	bytes_sent = send(sfd, message, len, 0);
+	bytes_sent = send(sfd, key, len, 0);
 
 
-	// Free memory for the message and key strings we read
-	// free(message);
+
+	// Free memory for message & key and addrinfo struct
+	free(message);
+	free(key);
+	free(servinfo);
 
 	return 0;
 }
