@@ -16,12 +16,17 @@
 
 #include "otp.h"
 
-char * encrypt_string(char * str) {
-	char * str_encr = malloc (sizeof (char) * strlen(str));
+/*******************************************************************************
+* char * encrypt_string(char * str) {
+* Encrypts a string using a str and a key
+*******************************************************************************/
+char * encrypt_string(char * msg, char * key) {
+	char * str_encr = malloc (sizeof (char) * strlen(msg));
 
 	int i = 0;
-	while (str[i] != '\0') {
-		str_encr[i] = str[i++] + 1;
+	while (msg[i] != '\0') {
+		str_encr[i] = msg[i] + key[i];
+		i++;
 	}
 	return str_encr;
 }
@@ -108,7 +113,7 @@ int main(int argc, char const *argv[]) {
 		}
 		printf("DEBUG: server: received 'key': %s\n", key);
 
-		char * resp = encrypt_string(msg);
+		char * resp = encrypt_string(msg, key);
 		// printf("DEBUG: server: encrypt_string(msg): %s\n", resp);
 
 		if (num_written = write(cfd, resp, strlen(resp)) == -1) {
