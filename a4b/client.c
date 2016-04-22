@@ -22,14 +22,16 @@
 * 
 *******************************************************************************/
 char * get_string_from_file(const char * fname) {
-	FILE * file = fopen(fname, "r");
+	// FILE * file = fopen(fname, "r");
 
 
 	char * file_contents = "hello from get_string_from_file";
 	char * return_string = malloc(sizeof(char) * strlen(file_contents));
 	return_string = file_contents;
 
-	fclose(file);
+	// if (file)
+		// fclose(file);
+
 	return return_string;
 }
 
