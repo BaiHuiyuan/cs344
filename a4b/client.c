@@ -1,5 +1,5 @@
 /*******************************************************************************
-* File:         server.c
+* File:         client.c
 * Author:       Shawn S Hillyer
 * Date:         May, 2016
 * Course:       OSU CSS 344-400: Assignment 04
@@ -7,8 +7,10 @@
 *               
 *               
 *               
-* Usage:        
-*               
+* Usage:        client message key port
+*               message is a plaintext file to encrypt
+*               key is a plaintext file used to encrypt using OTP method
+*               port is the port number of server.c
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
                 beej.us/guide/bgipc/output/html/multipage/unixsock.html  
@@ -18,10 +20,10 @@
 
 /*******************************************************************************
 * char * get_string_from_file(const char * fname) {
-* 
-* 
+* Reads the first line of a file and return the malloc'd str to caller
 *******************************************************************************/
 char * get_string_from_file(const char * fname) {
+	// Open file, read first line, close file, and return string
 	FILE * file;
 	if (!(file = fopen(fname, "r"))) {
 		perror_exit("fopen", EXIT_FAILURE);
@@ -29,13 +31,23 @@ char * get_string_from_file(const char * fname) {
 
 	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
 	fgets(file_contents, BUF_SIZE - 1, file);
-	char * return_string = malloc(sizeof(char) * strlen(file_contents));
-	return_string = file_contents;
 
-	if (file)
+	if (file)  // Close file if safely (failsafe, should have exited if NULL)
 		fclose(file);
 
-	return return_string;
+	return file_contents;
+}
+
+
+/*******************************************************************************
+* void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) 
+* cleans up dynamic memory for the two strings and the addrinfo struct
+*******************************************************************************/
+void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
+	if(str1) free(str1);
+	if(str2) free(str2);
+	// Per getaddrinfo() and Beej's NG, make sure to always call freeaddrinfo :)
+	if(addr) freeaddrinfo(addr);
 }
 
 /*******************************************************************************
@@ -55,6 +67,7 @@ int main(int argc, char const *argv[]) {
 	validate_port(port, errno);
 	const char * port_str = argv[3];
 
+	// Before bothering with sockets, attempt to read from message and key files
 	char * message = get_string_from_file(argv[1]);
 	char * key = get_string_from_file(argv[2]);
 
@@ -64,44 +77,57 @@ int main(int argc, char const *argv[]) {
 
 
 	// 0 out hints struct then init to connect to localhost via TCP
-	// Cite: lecture slides and man pages and beej guide
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET; // AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE; // fill in my ip for me
+	// Cite: lecture slides, man getaddrinfo(3), and beej guide - random bits
+	// Use the getaddrinfo() to fill out servinfo by passing in some 'hints'
+	memset(&hints, 0, sizeof hints);  // clear out the hints struct for safety
+	hints.ai_family = AF_INET; 
+	hints.ai_socktype = SOCK_STREAM; // Use TCP -- need 2-way communication
+	hints.ai_flags = AI_PASSIVE; // fill in local ip
 
 	// populate servinfo using the hints struct
 	if ( (status = getaddrinfo(NULL, port_str, &hints, &servinfo)) != 0) {
+		cleanup_memory(message, key, servinfo);	
 		perror_exit("getaddrinfo", EXIT_FAILURE);
 	}
 
 
 	// Now open a TCP socket stream; Cite: Slide 10 Unix Networking 2 (lecture)
 	// Cite: Beej network guide for using hints structure
-	if ((sfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
+	// Must be called after getaddrinfo() so that servinfo struct is populated
+	if ((sfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1) {
+		cleanup_memory(message, key, servinfo);	
 		perror_exit("socket", EXIT_FAILURE);
+	}
 
 
-	// Finally, connect to server indicated by servinfo.ai_addr
-	connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen);
+	// Connect to server indicated by servinfo.ai_addr
+	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+		cleanup_memory(message, key, servinfo);	
+		perror_exit("connect", EXIT_FAILURE);
+	}
 
 
-	// Send a message to the server.
-	// TODO: Once have the assignment description, need to do the encryption or decryption
-	// char * message = "Hello from client\n";
-	
+	// Send the message and key to server for processing	
+	int len, bytes_sent, bytes_received;
 
-	int len, bytes_sent;
+	// TODO: Copy pasted code --> make it a function if we pass both strings like this
+	// TODO: While making a functino, add error checking
 	len = strlen(message);
-	bytes_sent = send(sfd, message, len, 0);
-	bytes_sent = send(sfd, key, len, 0);
+	if(bytes_sent = send(sfd, message, len, 0) == -1)
+		perror_exit("send", EXIT_FAILURE);
+
+	len = strlen(key);
+	if(bytes_sent = send(sfd, key, len, 0) == -1)
+		perror_exit("send", EXIT_FAILURE);
+
+	// Receive the response from the server and print to screen.
+	char resp[BUF_SIZE];
+	bytes_received = read(sfd, resp, BUF_SIZE); // TODO ERROR CHECKING
+	printf("DEBUG: client: received 'response': %s\n", resp);
 
 
-
-	// Free memory for message & key and addrinfo struct
-	free(message);
-	free(key);
-	free(servinfo);
+	// Do some leanup	
+	cleanup_memory(message, key, servinfo);	
 
 	return 0;
 }

@@ -16,6 +16,17 @@
 
 #include "otp.h"
 
+// int read_str_from_socket(char * str) {	
+// 	int n_read;
+// 	// Read the first write to socket - this should be the message
+// 	if ( (n_read = read(cfd, str, BUF_SIZE)) == -1) {
+// 		perror("read");
+// 		return n_read; // signal failure to caller
+// 	}
+// 	return 0; // signal succes
+// }
+
+
 /*******************************************************************************
 * main()
 * Creates a socket and listens for incoming connections
@@ -35,9 +46,10 @@ int main(int argc, char const *argv[]) {
 
 	// Variables for sockets and the server address
 	int sfd, cfd, status;  
-	ssize_t num_read; // # of bytes read
-	char buf[BUF_SIZE];
-	struct addrinfo hints, *servinfo, *p;
+	ssize_t num_read, num_written; // # of bytes read
+	char msg[BUF_SIZE];
+	char key[BUF_SIZE];
+	struct addrinfo hints, *servinfo;// , *p;
 
 
 	// Initialize struct sockaddr_in before making and binding socket
@@ -80,23 +92,64 @@ int main(int argc, char const *argv[]) {
 			perror("accept");
 			continue;
 		}
+// ECHO LOOP STARTED HERE
 
-		// Echo data from connected socket to stdout until EOF
-		while ( (num_read = read(cfd, buf, BUF_SIZE)) > 0)
-			// Die a cruel death if the number written doesn't match the number read
-			if (write(STDOUT_FILENO, buf, num_read) != num_read)
-				perror_exit("partial/failed write", EXIT_FAILURE);
-		
-		// IF read failed, die 
-		if (num_read == -1)
-			perror_exit("read", EXIT_FAILURE);
+		// Read the first write to socket - this should be the message
+		if ( (num_read = read(cfd, msg, BUF_SIZE)) == -1) {
+			perror("read");
+			continue;
+		}
+		printf("DEBUG: server: received 'msg': %s\n", msg);
 
-		// otherwise read() has reached EOF. close connection socket ("cfd")
-		if (close(cfd) == -1)
-			perror_exit("close", EXIT_FAILURE);
+		// Read the second write to socket - this should be the key
+		if ( (num_read = read(cfd, key, BUF_SIZE)) == -1) {
+			perror("read");
+			continue;
+		}
+		printf("DEBUG: server: received 'key': %s\n", key);
+
+		char * resp = "Hello, I am the server's response string.\n";
+
+		if (num_written = write(cfd, resp, strlen(resp)) == -1) {
+			perror("write");
+			continue;
+		}
+
+		// Close the connection after processing data
+		if (close(cfd) == -1) {
+			perror("close");
+			continue;
+		}
 	}
 
 	// TODO: Are open socket fd's closed automatically on program termination?
 	// TODO: Would we need to trap interupt or other signals? Not running from a fork so if it's in BG... no?
 	return 0;
 }
+
+
+
+
+/* THIS IS THE ORIGINAL TEST "ECHO" CODE
+		// Echo data from connected socket to stdout until EOF
+		while ( (num_read = read(cfd, buf, BUF_SIZE)) > 0) {
+			// Die a cruel death if the number written doesn't match the number read
+			if (write(STDOUT_FILENO, buf, num_read) != num_read) {
+				perror("partial/failed write");
+				continue;
+			}
+		}
+
+		// IF read failed, die 
+		if (num_read == -1) {
+			perror("read");
+			continue;
+		}
+
+		// otherwise read() has reached EOF. close connection socket ("cfd")
+		if (close(cfd) == -1) {
+			perror("close");
+			continue;
+		}
+// END OF ORIGINAL ECHO CODE BLOCK 
+*/ 
