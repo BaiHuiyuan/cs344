@@ -23,7 +23,7 @@
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 2, "Usage: server [socket]\n");
+	check_argument_length(argc, 2, "Usage: server port\n");
 
 
 	// parse port from command line argument and check result

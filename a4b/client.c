@@ -17,22 +17,40 @@
 #include "otp.h"
 
 /*******************************************************************************
+* char * get_string_from_file(const char * fname) {
+* 
+* 
+*******************************************************************************/
+char * get_string_from_file(const char * fname) {
+	FILE * file = fopen(fname, "r");
+
+
+	char * file_contents = "hello from get_string_from_file";
+	char * return_string = malloc(sizeof(char) * strlen(file_contents));
+	return_string = file_contents;
+
+	fclose(file);
+	return return_string;
+}
+
+/*******************************************************************************
 * main()
 * Connects to a server and sends message
 *******************************************************************************/
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 2, "Usage: client [socket]\n");
+	check_argument_length(argc, 4, "Usage: client message key port\n");
 
 
 	// parse port from command line argument and check result
 	// Even though we are using the string version of the port, validate as an int
 	errno = 0; // 0 out before evaluating the call to strtol
-	int port = strtol(argv[1], NULL, 10);
+	int port = strtol(argv[3], NULL, 10);
 	validate_port(port, errno);
-	const char * port_str = argv[1];
+	const char * port_str = argv[3];
 
+	char * message = get_string_from_file(argv[1]);
 
 	// Variables for sockets and the server address
 	int sfd, status; 
@@ -64,10 +82,16 @@ int main(int argc, char const *argv[]) {
 
 	// Send a message to the server.
 	// TODO: Once have the assignment description, need to do the encryption or decryption
-	char * message = "Hello from client\n";
+	// char * message = "Hello from client\n";
+	
+
 	int len, bytes_sent;
 	len = strlen(message);
 	bytes_sent = send(sfd, message, len, 0);
+
+
+	// Free memory for the message and key strings we read
+	// free(message);
 
 	return 0;
 }
