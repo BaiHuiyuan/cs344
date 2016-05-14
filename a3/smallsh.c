@@ -84,7 +84,6 @@ void push_bg_pid(pid_t pid) {
 		bg_pids.capacity *= 2;
 		bg_pids.pids = realloc(bg_pids.pids, sizeof(pid_t) * bg_pids.capacity );
 	}
-	// TODO: if time, halve memory if less than 1/4 full
 	bg_pids.pids[bg_pids.size++] = pid;
 }
 
@@ -95,7 +94,6 @@ remove a pid from the bg_pids.pids[] array
 void remove_bg_pid(pid_t pid) {
 	int i, j;
 	if (pid > 0) {
-		// printf("removing pid %d\n", pid);
 		for (i = 0; i < bg_pids.size; i++) {
 			if (bg_pids.pids[i] == pid) {
 				bg_pids.size--;
