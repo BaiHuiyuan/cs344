@@ -6,16 +6,16 @@ CFLAGS = -std=c99
 
 LDFLAGS = -lm
 
-SRC1 = client.c
-SRC2 = server.c
+SRC1 = otp_enc.c
+SRC2 = otp_enc_d.c
 
 SRCS = ${SRC1}
 
-HEADER1 = 
+HEADER1 = otp.h
 HEADERS = ${HEADER1}
 
-PROG1 = client
-PROG2 = server
+PROG1 = otp_enc
+PROG2 = otp_enc_d
 PROGS = ${PROG1}
 
 DOC1 = readme.txt

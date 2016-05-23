@@ -1,17 +1,20 @@
 /*******************************************************************************
-* File:         server.c
+* File:         otp_enc_d.c
 * Author:       Shawn S Hillyer
-* Date:         May, 2016
+* Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
-* Description:  
-*               
-*               
-*               
-* Usage:        server <port_number>
+*
+* Description:  A daemon-like server process that listens on specified port for
+*               a connection from otp_enc. If handshake succesful, attempts
+*               to encrypt the plaintext using the key sent by client. Sends the
+*               encrypted text back to the client.
+*
+* Usage:        otp_enc_d <port_number> &
 *               Port must be in the range [MAX_PORT_NUMBER .. ]
+*               Should always run in background mode
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
-                beej.us/guide/bgipc/output/html/multipage/unixsock.html  
+*               beej.us/guide/bgipc/output/html/multipage/unixsock.html  
 *******************************************************************************/
 
 #include "otp.h"
@@ -84,6 +87,8 @@ int main(int argc, char const *argv[]) {
 	
 
 	// listen for up to 5 connections in queue
+	// TODO: See if this fits the requirement for the assignment as the pool or not?
+	// TODO: I think we need to fork off but can ask on forums about this.
 	if ( listen(sfd, 5) == -1)
 		perror_exit("listen", EXIT_FAILURE);
 
@@ -126,6 +131,7 @@ int main(int argc, char const *argv[]) {
 			perror("close");
 			continue;
 		}
+		// free(resp); // TODO Uncomment this and make sure it works
 	}
 
 	// TODO: Are open socket fd's closed automatically on program termination?

@@ -1,14 +1,13 @@
 /*******************************************************************************
 * File:         otp.h
 * Author:       Shawn S Hillyer
-* Date:         May, 2016
+* Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
-* Description:  Include headers, constants, & common functions for OTP client.c
-*               and server.c.
+*
+* Description:  Include headers, constants, & common functions for OTP client
+*               and server programs.
 *               
-*               
-* Usage:        server <port_number>
-*               Port must be in the range [MAX_PORT_NUMBER .. ]
+* Usage:        #include <"otp.h">
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
                 beej.us/guide/bgipc/output/html/multipage/unixsock.html  

@@ -1,8 +1,9 @@
 /*******************************************************************************
-* File:         client.c
+* File:         otp_enc.c
 * Author:       Shawn S Hillyer
-* Date:         May, 2016
+* Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
+*
 * Description:  
 *               
 *               
