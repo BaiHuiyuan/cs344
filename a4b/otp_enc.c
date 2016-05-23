@@ -4,12 +4,12 @@
 * Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
 *
-* Description:  
+* Description:  Connects to otp_enc_d on port and asks it to perform one time
+*               pad encryption of plaintext using key.
 *               
 *               
-*               
-* Usage:        client message key port
-*               message is a plaintext file to encrypt
+* Usage:        otp_enc plaintext key port
+*               plaintext is a plaintext file to encrypt
 *               key is a plaintext file used to encrypt using OTP method
 *               port is the port number of server.c
 *               
@@ -18,6 +18,14 @@
 *******************************************************************************/
 
 #include "otp.h"
+
+/*******************************************************************************
+* void strip_newline_from_string(char * string) {
+* Strips newline, if one exists, from string & replace with null terminator
+*******************************************************************************/
+void strip_newline_from_string(char * string) {
+	string[strcspn(string, "\r\n")] = 0; // replace LF, CR, CRLF< LFCR with null
+}
 
 /*******************************************************************************
 * char * get_string_from_file(const char * fname) {
@@ -32,12 +40,14 @@ char * get_string_from_file(const char * fname) {
 
 	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
 	fgets(file_contents, BUF_SIZE - 1, file);
-
+	strip_newline_from_string(file_contents);
+	
 	if (file)  // Close file if safely (failsafe, should have exited if NULL)
 		fclose(file);
 
 	return file_contents;
 }
+
 
 
 /*******************************************************************************
