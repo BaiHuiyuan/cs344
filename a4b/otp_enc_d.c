@@ -42,7 +42,7 @@ char * encrypt_string(char * msg, char * key) {
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 2, "Usage: server port\n");
+	check_argument_length(argc, 2, "Usage: otp_enc_d port\n");
 
 
 	// parse port from command line argument and check result
@@ -104,6 +104,33 @@ int main(int argc, char const *argv[]) {
 		}
 // ECHO LOOP STARTED HERE
 
+		// Check for handshake message.
+		const char * handshake_greeting = "otp_enc requests encryption";
+		const char * handshake_response = "otc_enc_d confirms encryption";
+
+		char handshake[BUF_SIZE];
+
+		if ( (num_read = read(cfd, handshake, BUF_SIZE)) == -1) {
+			perror("read");
+			continue;
+		} 
+
+		printf("DEBUG: server: Received this handshake: %s\n", handshake);
+		
+		if (strcmp(handshake, handshake_greeting) == 0 ) {
+			printf("DEBUG: server: Handshake request matches expected - attempting to write the response.\n");
+
+			if (num_written = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
+				perror("write");
+				continue;
+			}				
+		} 
+		else {
+			// perror("protocol handshake fail");
+			continue;
+		}
+		
+
 		// Read the first write to socket - this should be the message
 		if ( (num_read = read(cfd, msg, BUF_SIZE)) == -1) {
 			perror("read");
@@ -131,7 +158,7 @@ int main(int argc, char const *argv[]) {
 			perror("close");
 			continue;
 		}
-		// free(resp); // TODO Uncomment this and make sure it works
+		free(resp); // TODO Uncomment this and make sure it works
 	}
 
 	// TODO: Are open socket fd's closed automatically on program termination?
