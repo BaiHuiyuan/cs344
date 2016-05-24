@@ -165,30 +165,3 @@ int main(int argc, char const *argv[]) {
 	// TODO: Would we need to trap interupt or other signals? Not running from a fork so if it's in BG... no?
 	return 0;
 }
-
-
-
-
-/* THIS IS THE ORIGINAL TEST "ECHO" CODE
-		// Echo data from connected socket to stdout until EOF
-		while ( (num_read = read(cfd, buf, BUF_SIZE)) > 0) {
-			// Die a cruel death if the number written doesn't match the number read
-			if (write(STDOUT_FILENO, buf, num_read) != num_read) {
-				perror("partial/failed write");
-				continue;
-			}
-		}
-
-		// IF read failed, die 
-		if (num_read == -1) {
-			perror("read");
-			continue;
-		}
-
-		// otherwise read() has reached EOF. close connection socket ("cfd")
-		if (close(cfd) == -1) {
-			perror("close");
-			continue;
-		}
-// END OF ORIGINAL ECHO CODE BLOCK 
-*/ 

@@ -24,9 +24,9 @@
 * Strips newline, if one exists, from string & replace with null terminator
 *******************************************************************************/
 void strip_newline_from_string(char * string) {
-	// strcspn returns the length of all characters in a string that are not in
-	// the list of characters in the second argument. So this gives us the end
-	// and we place a null at that location in the string.
+	/* strcspn returns the length of all characters in a string that are not in
+	the list of characters in the second argument. So this gives us the end
+	and we place a null at that location in the string. */
 	string[strcspn(string, "\r\n")] = 0; // replace LF, CR, CRLF< LFCR with null
 }
 
@@ -39,6 +39,26 @@ void strip_newline_from_string(char * string) {
 void validate_key_message_lengths(char * msg, char * key) {
 	if (strlen(key) < strlen(msg)) {
 		perror_exit("key length too short", EXIT_FAILURE);
+	}
+}
+
+
+/*******************************************************************************
+* validate_characters
+* Check that all of the characters in the string are valid. For this program,
+* valid characters include [A-Z] and the space character. Newlines have already
+* been stripped from the strings so don't have to check for those.
+*******************************************************************************/
+void validate_characters(char * string) {
+	// TODO Maybe change this to a regex to check for valid characters
+	int len = strlen(string);
+	for (int i = 0; i < len; ++i) {
+		char cur = string[i];
+		if (!isupper(cur) && !isspace(cur)) {
+			// perror_exit("otp_enc: invalid characters in input file.", EXIT_FAILURE);
+			fprintf(stderr, "otp_enc: invalid characters in input file.\n");
+			exit(1);
+		}
 	}
 }
 
@@ -93,16 +113,21 @@ int main(int argc, char const *argv[]) {
 	validate_port(port, errno);
 	const char * port_str = argv[3];
 
-	// Before bothering with sockets, read plaintext and key files
+	// Read the input files and verify key is long enough and no invalid characters
 	char * message = get_string_from_file(argv[1]);
 	char * key = get_string_from_file(argv[2]);
 
 	validate_key_message_lengths(message, key);
+	validate_characters(message);
+	validate_characters(key);
+
 
 
 	if (strlen(key) < strlen(message)) {
 		// TODO: Why is this reporting "Success" with the EXIT_FAILURE constant??
-		perror_exit("key length too short", EXIT_FAILURE);
+		// perror_exit("key length too short", EXIT_FAILURE);
+		fprintf(stderr, "key length too short");
+		exit(1);
 	}
 
 
@@ -119,7 +144,7 @@ int main(int argc, char const *argv[]) {
 	memset(&hints, 0, sizeof hints);  // clear out the hints struct for safety
 	hints.ai_family = AF_INET; 
 	hints.ai_socktype = SOCK_STREAM; // Use TCP -- need 2-way communication
-	hints.ai_flags = AI_PASSIVE; // fill in local ip
+	hints.ai_flags = AI_PASSIVE; // fill in localhost ip
 
 	// populate servinfo using the hints struct
 	if ( (status = getaddrinfo(NULL, port_str, &hints, &servinfo)) != 0) {
@@ -140,7 +165,9 @@ int main(int argc, char const *argv[]) {
 	// Connect to server indicated by servinfo.ai_addr
 	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
 		cleanup_memory(message, key, servinfo);	
-		perror_exit("connect", EXIT_FAILURE);
+		// perror_exit("connect", EXIT_FAILURE);
+		fprintf(stderr, "otp_enc: Could not find port: %d\n", port);
+		exit(2);
 	}
 
 
@@ -153,8 +180,10 @@ int main(int argc, char const *argv[]) {
 	const char * handshake_greeting = "otp_enc requests encryption";
 	const char * handshake_response = "otc_enc_d confirms encryption";
 
-	if(bytes_sent = send(sfd, handshake_greeting, strlen(handshake_greeting), 0) == -1)
+	if(bytes_sent = send(sfd, handshake_greeting, strlen(handshake_greeting), 0) == -1) {
 		perror_exit("send", EXIT_FAILURE);
+		// fprintf(stderr, "otp_enc: send: err");
+	}
 
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
@@ -174,7 +203,9 @@ int main(int argc, char const *argv[]) {
 		perror_exit("send", EXIT_FAILURE);
 
 	// Receive response from the server and print to screen.
-	bytes_received = read(sfd, resp, BUF_SIZE); // TODO ERROR CHECKING
+	if (bytes_received = read(sfd, resp, BUF_SIZE) == -1) {
+		perror_exit("read", EXIT_FAILURE);
+	}
 	printf("DEBUG: client: received 'response': %s\n", resp);
 
 	// Do some leanup	

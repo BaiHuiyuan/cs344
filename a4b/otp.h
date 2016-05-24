@@ -16,6 +16,7 @@
 #ifndef SSHILLYER_OTP_H
 #define SSHILLYER_OTP_H
 
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <netdb.h>
