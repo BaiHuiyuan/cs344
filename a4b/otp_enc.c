@@ -50,13 +50,13 @@ void validate_key_message_lengths(char * msg, char * key) {
 * been stripped from the strings so don't have to check for those.
 *******************************************************************************/
 void validate_characters(char * string) {
-	// TODO Maybe change this to a regex to check for valid characters
+	// TODO Confirm with instructor/TA's that only [A-Z] and space are valid in both
 	int len = strlen(string);
 	for (int i = 0; i < len; ++i) {
 		char cur = string[i];
 		if (!isupper(cur) && !isspace(cur)) {
 			// perror_exit("otp_enc: invalid characters in input file.", EXIT_FAILURE);
-			fprintf(stderr, "otp_enc: invalid characters in input file.\n");
+			fprintf(stderr, "otp_enc: invalid characters in a plaintext or key file. Only use [A-Z] and spaces.\n");
 			exit(1);
 		}
 	}
@@ -188,8 +188,8 @@ int main(int argc, char const *argv[]) {
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
 	if (strcmp(resp, handshake_response) !=0 ) {
-		printf("DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
-		perror_exit("protocol handshake fail", EXIT_FAILURE);
+		fprintf(stderr, "DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
+		perror_exit("otp_enc: handshake: failed to handshake succesfully", EXIT_FAILURE);
 	}
 	
 	// Send the message and key to server for processing	
@@ -206,7 +206,9 @@ int main(int argc, char const *argv[]) {
 	if (bytes_received = read(sfd, resp, BUF_SIZE) == -1) {
 		perror_exit("read", EXIT_FAILURE);
 	}
-	printf("DEBUG: client: received 'response': %s\n", resp);
+
+	// TODO: remove everything except the %s format-string
+	fprintf(stdout, "DEBUG: client: received 'response': %s\n", resp); 
 
 	// Do some leanup	
 	cleanup_memory(message, key, servinfo);	
