@@ -8,8 +8,8 @@ LDFLAGS = -lm
 
 SRC1 = otp_enc.c
 SRC2 = otp_enc_d.c
-#SRC3 = otp_dec.c
-#SRC4 = otp_dec_d.c
+SRC3 = otp_dec.c
+SRC4 = otp_dec_d.c
 SRC5 = keygen.c
 
 SRCS = ${SRC1}
@@ -19,8 +19,8 @@ HEADERS = ${HEADER1}
 
 PROG1 = otp_enc
 PROG2 = otp_enc_d
-#PROG3 = otp_dec
-#PROG4 = otp_dec_d
+PROG3 = otp_dec
+PROG4 = otp_dec_d
 PROG5 = keygen
 PROGS = ${PROG1}
 
@@ -33,8 +33,8 @@ ZIP = hillyers.otp.zip
 default:
 	${CC} ${CFLAGS} ${SRC1} ${HEADERS} -o ${PROG1} -D_XOPEN_SOURCE
 	${CC} ${CFLAGS} ${SRC2} ${HEADERS} -o ${PROG2} -D_XOPEN_SOURCE
-#	${CC} ${CFLAGS} ${SRC3} ${HEADERS} -o ${PROG3} -D_XOPEN_SOURCE
-#	${CC} ${CFLAGS} ${SRC4} ${HEADERS} -o ${PROG4} -D_XOPEN_SOURCE
+	${CC} ${CFLAGS} ${SRC3} ${HEADERS} -o ${PROG3} -D_XOPEN_SOURCE
+	${CC} ${CFLAGS} ${SRC4} ${HEADERS} -o ${PROG4} -D_XOPEN_SOURCE
 	${CC} ${CFLAGS} ${SRC5} ${HEADERS} -o ${PROG5} -D_XOPEN_SOURCE
 
 

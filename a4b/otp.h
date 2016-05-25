@@ -167,13 +167,13 @@ char * get_string_from_file(const char * fname) {
 
 
 /*******************************************************************************
-* int convert_char_to_val(char ch)
+* int char_to_int(char ch)
 * ch: char to convert to an integer representation
 * Converts a character from [A-Z] and the space char into int in range [0-27]
 *******************************************************************************/
-int convert_char_to_val(char ch) {
+int char_to_int(char ch) {
 	if (isspace(ch)) {
-		return 27;
+		return 26; // 0 = A .. 25 = Z, 26 = ' '
 	} 
 	else {
 		return (ch - 'A');
@@ -212,9 +212,10 @@ char * encrypt_string(char * msg, char * key, int reverse_encryption_mode) {
 
 	for (int i = 0; i < strlen(msg); i++) {
 		// Convert letters in the strings to int representation
-		int msg_ch_val = convert_char_to_val(msg[i]);
-		int key_ch_val = convert_char_to_val(key[i]);
-		char ch_index;
+		// Use the char/integer after 'Z' to represent the space char
+		int msg_ch_val = char_to_int(msg[i]);
+		int key_ch_val = char_to_int(key[i]);
+		int ch_index;
 
 		// Add or subtract the values and keep within valid range
 		if (reverse_encryption_mode) {
@@ -224,8 +225,6 @@ char * encrypt_string(char * msg, char * key, int reverse_encryption_mode) {
 		}
 		else {
 			ch_index = (msg_ch_val + key_ch_val) % NUM_CH;
-			if (ch_index > NUM_CH)
-				ch_index += NUM_CH;
 		}
 
 		// Assign the characters into the return string by referencing the map

@@ -1,15 +1,15 @@
 /*******************************************************************************
-* File:         otp_enc.c
+* File:         otp_dec.c
 * Author:       Shawn S Hillyer
 * Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
 *
-* Description:  Connects to otp_enc_d on port and asks it to perform one time
-*               pad encryption of plaintext using key.
+* Description:  Connects to otp_dec_d on port and asks it to perform one time
+*               pad decryption of plaintext using key.
 *               
-* Usage:        otp_enc plaintext key port
-*               plaintext is a plaintext file to encrypt
-*               key is a plaintext file used to encrypt using OTP method
+* Usage:        otp_dec plaintext key port
+*               plaintext is a plaintext file to decrypt
+*               key is a plaintext file used to decrypt using OTP method
 *               port is the port number of server.c
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
@@ -26,7 +26,7 @@
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_count(argc, 4, "Usage: otp_enc message key port\n");
+	check_argument_count(argc, 4, "Usage: otp_dec message key port\n");
 
 	// parse port from command line argument and check result
 	
@@ -74,7 +74,7 @@ int main(int argc, char const *argv[]) {
 	// Connect to server indicated by servinfo.ai_addr
 	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
 		cleanup_memory(message, key, servinfo);	
-		fprintf(stderr, "otp_enc: Could not contact otp_enc_d on port %d\n", port);
+		fprintf(stderr, "otp_dec: Could not contact otp_dec_d on port %d\n", port);
 		exit(2);
 	}
 
@@ -84,20 +84,20 @@ int main(int argc, char const *argv[]) {
 	char resp[BUF_SIZE];
 	
 
-	// Send handshake greeting to server and verify talking to otp_enc_d
-	const char * handshake_greeting = "otp_enc requests encryption";
-	const char * handshake_response = "otc_enc_d confirms encryption";
+	// Send handshake greeting to server and verify talking to otp_dec_d
+	const char * handshake_greeting = "otp_dec requests decryption";
+	const char * handshake_response = "otc_dec_d confirms decryption";
 
 	if(bytes_sent = send(sfd, handshake_greeting, strlen(handshake_greeting), 0) == -1) {
 		perror_exit("send", EXIT_FAILURE);
-		// fprintf(stderr, "otp_enc: send: err");
+		// fprintf(stderr, "otp_dec: send: err");
 	}
 
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
 	if (strcmp(resp, handshake_response) != 0 ) {
 		fprintf(stderr, "DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
-		perror_exit("otp_enc: handshake: failed to handshake succesfully, connection refused", EXIT_FAILURE);
+		perror_exit("otp_dec: handshake: failed to handshake succesfully, connection refused", EXIT_FAILURE);
 	}
 	
 	// Send the message and key to server for processing:
