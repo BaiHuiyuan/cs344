@@ -22,7 +22,7 @@ PROG2 = otp_enc_d
 PROG3 = otp_dec
 PROG4 = otp_dec_d
 PROG5 = keygen
-PROGS = ${PROG1}
+PROGS = ${PROG1} ${PROG2} ${PROG3} ${PROG4} ${PROG5} 
 
 DOC1 = readme.txt
 DOCS = ${DOC1}
