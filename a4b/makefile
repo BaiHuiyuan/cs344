@@ -24,8 +24,12 @@ PROG4 = otp_dec_d
 PROG5 = keygen
 PROGS = ${PROG1} ${PROG2} ${PROG3} ${PROG4} ${PROG5} 
 
-DOC1 = readme.txt
-DOCS = ${DOC1}
+DOC1 = plaintext1
+DOC2 = plaintext2
+DOC3 = plaintext3
+DOC4 = plaintext4
+DOC5 = plaintext5
+DOCS = ${DOC1} ${DOC2} ${DOC3} ${DOC4} ${DOC5} ${DOC6}
 
 ZIP = hillyers.otp.zip
 	
@@ -37,9 +41,8 @@ default:
 	${CC} ${CFLAGS} ${SRC4} ${HEADERS} -o ${PROG4} -D_XOPEN_SOURCE
 	${CC} ${CFLAGS} ${SRC5} ${HEADERS} -o ${PROG5} -D_XOPEN_SOURCE
 
-
 zip:
-	zip ${ZIP} ${SRCS} ${HEADERS} ${DOCS} makefile
+	zip ${ZIP} ${SRCS} ${HEADERS} ${DOCS} makefile compileall
 
 clean:
 	rm -f ${PROGS} *.o *.~
