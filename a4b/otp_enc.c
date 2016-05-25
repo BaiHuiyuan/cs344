@@ -106,7 +106,7 @@ void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 4, "Usage: otp_enc message key port\n");
+	check_argument_count(argc, 4, "Usage: otp_enc message key port\n");
 
 	// parse port from command line argument and check result
 	// Even though we are using the string version of the port, validate as an int

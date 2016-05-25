@@ -3,7 +3,7 @@
 
 int main(int argc, char const *argv[]) {
 	// Verify Arguments are valid
-	check_argument_length(argc, 2, "Usage: keygen keylength\n");
+	check_argument_count(argc, 2, "Usage: keygen keylength\n");
 
 	// parse keylength from commandline and make sure it's a valid integer
 	errno = 0; // 0 out before evaluating the call to strtol

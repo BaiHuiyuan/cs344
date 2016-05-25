@@ -42,7 +42,7 @@ char * encrypt_string(char * msg, char * key) {
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 2, "Usage: otp_enc_d port\n");
+	check_argument_count(argc, 2, "Usage: otp_enc_d port\n");
 
 
 	// parse port from command line argument and check result

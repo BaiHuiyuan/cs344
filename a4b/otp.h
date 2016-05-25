@@ -33,13 +33,13 @@
 #define BUF_SIZE 1000000
 
 /*******************************************************************************
-* void check_argument_length(int arg_c, int req, const char * message)
+* void check_argument_count(int arg_c, int req, const char * message)
 * : validates that arg_c == req and prints message if not
 * argc: number of arguments expected
 * req: number of arguments required
 * message: usage message
 *******************************************************************************/
-void check_argument_length(int arg_c, int req, const char * message) {
+void check_argument_count(int arg_c, int req, const char * message) {
 	if (arg_c != req) {
 		fprintf(stderr, "%s", message);
 		exit(EXIT_FAILURE);
