@@ -9,8 +9,8 @@ int main(int argc, char const *argv[]) {
 	errno = 0; // 0 out before evaluating the call to strtol
 	int keylength = strtol(argv[1], NULL, 10);
 
-	if (keylength == 0) {
-		fprintf(stderr, "keygen: error parsing keylength, must be digit-string\n");
+	if (keylength <= 0) {
+		fprintf(stderr, "keygen: error parsing keylength, must be a positive integer.\n");
 		exit(EXIT_FAILURE);
 	}
 

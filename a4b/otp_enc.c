@@ -33,18 +33,20 @@ void strip_newline_from_string(char * string) {
 
 
 /*******************************************************************************
-* validate_key_message_lengths(char * msg, key) {
+* validate_key_message_lengths(char * msg, key)
 * Ensure that the message and key are the correct sizes
 *******************************************************************************/
-void validate_key_message_lengths(char * msg, char * key) {
+void validate_key_message_lengths(char * msg, char * key, const char * key_filename) {
 	if (strlen(key) < strlen(msg)) {
-		perror_exit("key length too short", EXIT_FAILURE);
+		// perror_exit("key length too short", EXIT_FAILURE);
+		fprintf(stderr, "Error: key '%s' is too short\n", key_filename);
+		exit(EXIT_FAILURE);
 	}
 }
 
 
 /*******************************************************************************
-* validate_characters
+* validate_characters(char * string)
 * Check that all of the characters in the string are valid. For this program,
 * valid characters include [A-Z] and the space character. Newlines have already
 * been stripped from the strings so don't have to check for those.
@@ -56,7 +58,7 @@ void validate_characters(char * string) {
 		char cur = string[i];
 		if (!isupper(cur) && !isspace(cur)) {
 			// perror_exit("otp_enc: invalid characters in input file.", EXIT_FAILURE);
-			fprintf(stderr, "otp_enc: invalid characters in a plaintext or key file. Only use [A-Z] and spaces.\n");
+			fprintf(stderr, "otp_enc error: input contains bad characters\n");
 			exit(1);
 		}
 	}
@@ -117,11 +119,9 @@ int main(int argc, char const *argv[]) {
 	char * message = get_string_from_file(argv[1]);
 	char * key = get_string_from_file(argv[2]);
 
-	validate_key_message_lengths(message, key);
+	validate_key_message_lengths(message, key, argv[2]);
 	validate_characters(message);
 	validate_characters(key);
-
-
 
 	if (strlen(key) < strlen(message)) {
 		// TODO: Why is this reporting "Success" with the EXIT_FAILURE constant??
