@@ -19,20 +19,8 @@
 
 #include "otp.h"
 
-/*******************************************************************************
-* char * encrypt_string(char * str) {
-* Encrypts a string using a str and a key
-*******************************************************************************/
-char * encrypt_string(char * msg, char * key) {
-	char * str_encr = malloc (sizeof (char) * strlen(msg));
 
-	int i = 0;
-	while (msg[i] != '\0') {
-		str_encr[i] = msg[i] + key[i];
-		i++;
-	}
-	return str_encr;
-}
+
 
 
 /*******************************************************************************
@@ -145,10 +133,12 @@ int main(int argc, char const *argv[]) {
 		}
 		printf("DEBUG: server: received 'key': %s\n", key);
 
-		char * resp = encrypt_string(msg, key);
-		// printf("DEBUG: server: encrypt_string(msg): %s\n", resp);
+		char * resp = encrypt_string(msg, key, 0); // TODO: Make sure this is passed arg3 of '1' in decryption verison
+		printf("DEBUG: server: encrypt_string(msg, key) yields resp: %s\n", resp);
 
-		if (num_written = write(cfd, resp, strlen(resp)) == -1) {
+		// We write back the entire string plus a null byte so that the receiving end knows
+		// when to null terminate its string!
+		if (num_written = write(cfd, resp, strlen(resp) + 1) == -1) {
 			perror("write");
 			continue;
 		}
@@ -158,7 +148,8 @@ int main(int argc, char const *argv[]) {
 			perror("close");
 			continue;
 		}
-		free(resp); // TODO Uncomment this and make sure it works
+
+		free(resp);
 	}
 
 	// TODO: Are open socket fd's closed automatically on program termination?

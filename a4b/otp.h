@@ -28,9 +28,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+
+// Constants
 #define MIN_PORT_NUMBER 1
 #define MAX_PORT_NUMBER 65535
 #define BUF_SIZE 1000000
+#define NUM_CH 27
+
 
 /*******************************************************************************
 * void check_argument_count(int arg_c, int req, const char * message)
@@ -48,7 +52,7 @@ void check_argument_count(int arg_c, int req, const char * message) {
 
 
 /*******************************************************************************
-* void perror_exit(char * message, int exit_value) {
+* void perror_exit(char * message, int exit_value)
 * prints message using perror() and calls exit with exit_value
 * message: char * pointing to null terminated c-string
 * exit_value: int representing the exit value to pass to exit
@@ -58,7 +62,27 @@ void perror_exit(char * message, int exit_value) {
 	exit(exit_value);
 }
 
+
 /*******************************************************************************
+* int convert_string_to_int(const char * string)
+* string: A null terminated string to be converted to an integer.
+* Takes a string argument and returns best representation of it as a string
+*******************************************************************************/
+int convert_string_to_int(const char * string) {
+	// parse port from command line argument and check result
+	// Even though we are using the string version of the port, validate as an int
+	errno = 0; // 0 out before evaluating the call to strtol
+	int result = strtol(string, NULL, 10);
+	if (errno == ERANGE) {
+		fprintf(stderr, "The string '%s' converts to an integer outside the valid range.\n", string);
+		exit(EXIT_FAILURE);
+	}
+	return result;
+}
+
+
+/*******************************************************************************
+* void validate_port(int port, int err)
 * confirm that port was parsed within valid range for ports
 * Cite: man strtol, example section
 *******************************************************************************/
@@ -71,9 +95,147 @@ void validate_port(int port, int err) {
 	}
 }
 
-#endif
+/*******************************************************************************
+* void strip_newline_from_string(char * string)
+* string: A null-terminated c-string
+* Strips newline, if one exists, from string & replace with null terminator
+*******************************************************************************/
+void strip_newline_from_string(char * string) {
+	/* strcspn returns the length of all characters in a string that are not in
+	the list of characters in the second argument. So this gives us the end
+	and we place a null at that location in the string. */
+	string[strcspn(string, "\r\n")] = 0; // replace LF, CR, CRLF< LFCR with null
+}
+
+
 
 /*******************************************************************************
-* 
-* 
+* validate_key_message_lengths(char * msg, key)
+* msg: string to compare
+* key: string to compare
+* key_filename: Source of the filename the key string was in.
+* Ensure that the key is at least asl big as the msg
 *******************************************************************************/
+void validate_key_message_lengths(char * msg, char * key, const char * key_filename) {
+	if (strlen(key) < strlen(msg)) {
+		fprintf(stderr, "Error: key '%s' is too short\n", key_filename);
+		exit(EXIT_FAILURE);
+	}
+}
+
+
+/*******************************************************************************
+* validate_characters(char * string)
+* string: string to examine for valid characters
+* Check that all of the characters in the string are valid. For this program,
+* valid characters include [A-Z] and the space character. Newlines have already
+* been stripped from the strings so don't have to check for those.
+*******************************************************************************/
+void validate_characters(char * string) {
+	int len = strlen(string);
+	for (int i = 0; i < len; ++i) {
+		char cur = string[i];
+		if (!isupper(cur) && !isspace(cur)) {
+			fprintf(stderr, "otp_enc error: input contains bad characters\n");
+			exit(1);
+		}
+	}
+}
+
+/*******************************************************************************
+* char * get_string_from_file(const char * fname)
+* fname: string of a filename to read from
+* Reads the first line of a file and return the malloc'd str to caller
+*******************************************************************************/
+char * get_string_from_file(const char * fname) {
+	// Open file, read first line, close file, and return string
+	FILE * file;
+	if (!(file = fopen(fname, "r"))) {
+		perror_exit("fopen", EXIT_FAILURE);
+	}
+
+	// fgets() reads until newline or '\0', then strip it off
+	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
+	fgets(file_contents, BUF_SIZE - 1, file);
+	strip_newline_from_string(file_contents);
+	
+	if (file)  // Close file if safely (failsafe, should have exited if NULL)
+		fclose(file);
+
+	return file_contents;
+}
+
+
+/*******************************************************************************
+* int convert_char_to_val(char ch)
+* ch: char to convert to an integer representation
+* Converts a character from [A-Z] and the space char into int in range [0-27]
+*******************************************************************************/
+int convert_char_to_val(char ch) {
+	if (isspace(ch)) {
+		return 27;
+	} 
+	else {
+		return (ch - 'A');
+	}
+}
+
+
+/*******************************************************************************
+* void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) 
+* cleans up dynamic memory for the two strings and the addrinfo struct
+*******************************************************************************/
+void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
+	if(str1) free(str1);
+	if(str2) free(str2);
+	// Per getaddrinfo() and Beej's NG, make sure to always call freeaddrinfo :)
+	if(addr) freeaddrinfo(addr);
+}
+
+
+/*******************************************************************************
+* char * encrypt_string(char * str)
+* str: A string to encrypt (or decrypt)
+* msg: A message to encrypt
+* key: A string at least as long as the message to use as the key for encryption
+* reverse_encryption_mode: 0 (false) or 1 (true) to indicate if should encrypt
+*     or decrypt msg
+* Encrypts 'msg' using OTP encryption with string held in 'key'
+*******************************************************************************/
+char * encrypt_string(char * msg, char * key, int reverse_encryption_mode) {
+	// Convert ascii values from ['A'-'Z'] to [0 - 26] and ' ' to 27, then map
+	// each character to an index in array of valid chars and assign to new str
+	const char charmap[NUM_CH] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+	
+	char * str_encr = malloc (sizeof (char) * strlen(msg) + 1);
+	int i = 0;
+
+	for (int i = 0; i < strlen(msg); i++) {
+		// Convert letters in the strings to int representation
+		int msg_ch_val = convert_char_to_val(msg[i]);
+		int key_ch_val = convert_char_to_val(key[i]);
+		char ch_index;
+
+		// Add or subtract the values and keep within valid range
+		if (reverse_encryption_mode) {
+			ch_index = (msg_ch_val - key_ch_val) % NUM_CH;
+			if (ch_index < 0)
+				ch_index += NUM_CH;
+		}
+		else {
+			ch_index = (msg_ch_val + key_ch_val) % NUM_CH;
+			if (ch_index > NUM_CH)
+				ch_index += NUM_CH;
+		}
+
+		// Assign the characters into the return string by referencing the map
+		str_encr[i] = charmap[ch_index];
+	}
+
+	// null terminate the string and return the result.
+	str_encr[strlen(msg) + 1] = '\0'; 
+	
+	return str_encr;
+}
+
+#endif

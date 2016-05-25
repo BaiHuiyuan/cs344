@@ -19,85 +19,6 @@
 
 #include "otp.h"
 
-/*******************************************************************************
-* void strip_newline_from_string(char * string) {
-* Strips newline, if one exists, from string & replace with null terminator
-*******************************************************************************/
-void strip_newline_from_string(char * string) {
-	/* strcspn returns the length of all characters in a string that are not in
-	the list of characters in the second argument. So this gives us the end
-	and we place a null at that location in the string. */
-	string[strcspn(string, "\r\n")] = 0; // replace LF, CR, CRLF< LFCR with null
-}
-
-
-
-/*******************************************************************************
-* validate_key_message_lengths(char * msg, key)
-* Ensure that the message and key are the correct sizes
-*******************************************************************************/
-void validate_key_message_lengths(char * msg, char * key, const char * key_filename) {
-	if (strlen(key) < strlen(msg)) {
-		// perror_exit("key length too short", EXIT_FAILURE);
-		fprintf(stderr, "Error: key '%s' is too short\n", key_filename);
-		exit(EXIT_FAILURE);
-	}
-}
-
-
-/*******************************************************************************
-* validate_characters(char * string)
-* Check that all of the characters in the string are valid. For this program,
-* valid characters include [A-Z] and the space character. Newlines have already
-* been stripped from the strings so don't have to check for those.
-*******************************************************************************/
-void validate_characters(char * string) {
-	// TODO Confirm with instructor/TA's that only [A-Z] and space are valid in both
-	int len = strlen(string);
-	for (int i = 0; i < len; ++i) {
-		char cur = string[i];
-		if (!isupper(cur) && !isspace(cur)) {
-			// perror_exit("otp_enc: invalid characters in input file.", EXIT_FAILURE);
-			fprintf(stderr, "otp_enc error: input contains bad characters\n");
-			exit(1);
-		}
-	}
-}
-
-/*******************************************************************************
-* char * get_string_from_file(const char * fname) {
-* Reads the first line of a file and return the malloc'd str to caller
-*******************************************************************************/
-char * get_string_from_file(const char * fname) {
-	// Open file, read first line, close file, and return string
-	FILE * file;
-	if (!(file = fopen(fname, "r"))) {
-		perror_exit("fopen", EXIT_FAILURE);
-	}
-
-	// fgets() reads until newline or '\0', then strip it off
-	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
-	fgets(file_contents, BUF_SIZE - 1, file);
-	strip_newline_from_string(file_contents);
-	
-	if (file)  // Close file if safely (failsafe, should have exited if NULL)
-		fclose(file);
-
-	return file_contents;
-}
-
-
-
-/*******************************************************************************
-* void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) 
-* cleans up dynamic memory for the two strings and the addrinfo struct
-*******************************************************************************/
-void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
-	if(str1) free(str1);
-	if(str2) free(str2);
-	// Per getaddrinfo() and Beej's NG, make sure to always call freeaddrinfo :)
-	if(addr) freeaddrinfo(addr);
-}
 
 /*******************************************************************************
 * main()
@@ -109,9 +30,9 @@ int main(int argc, char const *argv[]) {
 	check_argument_count(argc, 4, "Usage: otp_enc message key port\n");
 
 	// parse port from command line argument and check result
-	// Even though we are using the string version of the port, validate as an int
-	errno = 0; // 0 out before evaluating the call to strtol
-	int port = strtol(argv[3], NULL, 10);
+	
+	// Even though we end up using string version of port, validate is valid int
+	int port = convert_string_to_int(argv[3]);
 	validate_port(port, errno);
 	const char * port_str = argv[3];
 
@@ -123,20 +44,9 @@ int main(int argc, char const *argv[]) {
 	validate_characters(message);
 	validate_characters(key);
 
-	if (strlen(key) < strlen(message)) {
-		// TODO: Why is this reporting "Success" with the EXIT_FAILURE constant??
-		// perror_exit("key length too short", EXIT_FAILURE);
-		fprintf(stderr, "key length too short");
-		exit(1);
-	}
-
-
-	// TODO: Think we need to validate that the key and message contain only valid characters
-
 	// Variables for sockets and the server address
 	int sfd, status; 
 	struct addrinfo hints, *servinfo;
-
 
 	// 0 out hints struct then init to connect to localhost via TCP
 	// Cite: lecture slides, man getaddrinfo(3), and beej guide - random bits
@@ -165,8 +75,7 @@ int main(int argc, char const *argv[]) {
 	// Connect to server indicated by servinfo.ai_addr
 	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
 		cleanup_memory(message, key, servinfo);	
-		// perror_exit("connect", EXIT_FAILURE);
-		fprintf(stderr, "otp_enc: Could not find port: %d\n", port);
+		fprintf(stderr, "otp_enc: Could not contact otp_enc_d on port %d\n", port);
 		exit(2);
 	}
 
@@ -187,18 +96,17 @@ int main(int argc, char const *argv[]) {
 
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
-	if (strcmp(resp, handshake_response) !=0 ) {
+	if (strcmp(resp, handshake_response) != 0 ) {
 		fprintf(stderr, "DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
-		perror_exit("otp_enc: handshake: failed to handshake succesfully", EXIT_FAILURE);
+		perror_exit("otp_enc: handshake: failed to handshake succesfully, connection refused", EXIT_FAILURE);
 	}
 	
-	// Send the message and key to server for processing	
-
+	// Send the message and key to server for processing:
 	// Message
 	if(bytes_sent = send(sfd, message, strlen(message), 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
-	// Key 
+	// Key
 	if(bytes_sent = send(sfd, key, strlen(key), 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
@@ -210,7 +118,7 @@ int main(int argc, char const *argv[]) {
 	// TODO: remove everything except the %s format-string
 	fprintf(stdout, "DEBUG: client: received 'response': %s\n", resp); 
 
-	// Do some leanup	
+	// Do some cleanup	
 	cleanup_memory(message, key, servinfo);	
 
 	return 0;
