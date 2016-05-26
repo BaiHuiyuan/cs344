@@ -1,15 +1,15 @@
 /*******************************************************************************
-* File:         client.c
+* File:         otp_dec.c
 * Author:       Shawn S Hillyer
-* Date:         May, 2016
+* Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
-* Description:  
+*
+* Description:  Connects to otp_dec_d on port and asks it to perform one time
+*               pad decryption of plaintext using key.
 *               
-*               
-*               
-* Usage:        client message key port
-*               message is a plaintext file to encrypt
-*               key is a plaintext file used to encrypt using OTP method
+* Usage:        otp_dec plaintext key port
+*               plaintext is a plaintext file to decrypt
+*               key is a plaintext file used to decrypt using OTP method
 *               port is the port number of server.c
 *               
 * Cite:         Overall flow of a socket-based client/server pair of programs: 
@@ -18,37 +18,6 @@
 
 #include "otp.h"
 
-/*******************************************************************************
-* char * get_string_from_file(const char * fname) {
-* Reads the first line of a file and return the malloc'd str to caller
-*******************************************************************************/
-char * get_string_from_file(const char * fname) {
-	// Open file, read first line, close file, and return string
-	FILE * file;
-	if (!(file = fopen(fname, "r"))) {
-		perror_exit("fopen", EXIT_FAILURE);
-	}
-
-	char * file_contents = malloc(sizeof (char) * BUF_SIZE);
-	fgets(file_contents, BUF_SIZE - 1, file);
-
-	if (file)  // Close file if safely (failsafe, should have exited if NULL)
-		fclose(file);
-
-	return file_contents;
-}
-
-
-/*******************************************************************************
-* void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) 
-* cleans up dynamic memory for the two strings and the addrinfo struct
-*******************************************************************************/
-void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
-	if(str1) free(str1);
-	if(str2) free(str2);
-	// Per getaddrinfo() and Beej's NG, make sure to always call freeaddrinfo :)
-	if(addr) freeaddrinfo(addr);
-}
 
 /*******************************************************************************
 * main()
@@ -57,24 +26,26 @@ void cleanup_memory(char * str1, char * str2, struct addrinfo * addr) {
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_length(argc, 4, "Usage: client message key port\n");
-
+	check_argument_count(argc, 4, "Usage: otp_dec message key port\n");
 
 	// parse port from command line argument and check result
-	// Even though we are using the string version of the port, validate as an int
-	errno = 0; // 0 out before evaluating the call to strtol
-	int port = strtol(argv[3], NULL, 10);
+	
+	// Even though we end up using string version of port, validate is valid int
+	int port = convert_string_to_int(argv[3]);
 	validate_port(port, errno);
 	const char * port_str = argv[3];
 
-	// Before bothering with sockets, attempt to read from message and key files
+	// Read the input files and verify key is long enough and no invalid characters
 	char * message = get_string_from_file(argv[1]);
 	char * key = get_string_from_file(argv[2]);
+
+	validate_key_message_lengths(message, key, argv[2]);
+	validate_characters(message);
+	validate_characters(key);
 
 	// Variables for sockets and the server address
 	int sfd, status; 
 	struct addrinfo hints, *servinfo;
-
 
 	// 0 out hints struct then init to connect to localhost via TCP
 	// Cite: lecture slides, man getaddrinfo(3), and beej guide - random bits
@@ -82,7 +53,7 @@ int main(int argc, char const *argv[]) {
 	memset(&hints, 0, sizeof hints);  // clear out the hints struct for safety
 	hints.ai_family = AF_INET; 
 	hints.ai_socktype = SOCK_STREAM; // Use TCP -- need 2-way communication
-	hints.ai_flags = AI_PASSIVE; // fill in local ip
+	hints.ai_flags = AI_PASSIVE; // fill in localhost ip
 
 	// populate servinfo using the hints struct
 	if ( (status = getaddrinfo(NULL, port_str, &hints, &servinfo)) != 0) {
@@ -103,30 +74,50 @@ int main(int argc, char const *argv[]) {
 	// Connect to server indicated by servinfo.ai_addr
 	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
 		cleanup_memory(message, key, servinfo);	
-		perror_exit("connect", EXIT_FAILURE);
+		fprintf(stderr, "otp_dec: Could not contact otp_dec_d on port %d\n", port);
+		exit(2);
 	}
 
 
-	// Send the message and key to server for processing	
+	// Variables for sending and receiving responses
 	int len, bytes_sent, bytes_received;
+	char resp[BUF_SIZE];
+	
 
+	// Send handshake greeting to server and verify talking to otp_dec_d
+	const char * handshake_greeting = "otp_dec requests decryption";
+	const char * handshake_response = "otc_dec_d confirms decryption";
+
+	if(bytes_sent = send(sfd, handshake_greeting, strlen(handshake_greeting), 0) == -1) {
+		perror_exit("send", EXIT_FAILURE);
+		// fprintf(stderr, "otp_dec: send: err");
+	}
+
+	bytes_received = read(sfd, resp, BUF_SIZE);
+
+	if (strcmp(resp, handshake_response) != 0 ) {
+		fprintf(stderr, "DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
+		perror_exit("otp_dec: handshake: failed to handshake succesfully, connection refused", EXIT_FAILURE);
+	}
+	
+	// Send the message and key to server for processing:
 	// Message
-	len = strlen(message);
-	if(bytes_sent = send(sfd, message, len, 0) == -1)
+	if(bytes_sent = send(sfd, message, strlen(message), 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
-	// Key 
-	len = strlen(key);
-	if(bytes_sent = send(sfd, key, len, 0) == -1)
+	// Key
+	if(bytes_sent = send(sfd, key, strlen(key), 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
 	// Receive response from the server and print to screen.
-	char resp[BUF_SIZE];
-	bytes_received = read(sfd, resp, BUF_SIZE); // TODO ERROR CHECKING
-	printf("DEBUG: client: received 'response': %s\n", resp);
+	if (bytes_received = read(sfd, resp, BUF_SIZE) == -1) {
+		perror_exit("read", EXIT_FAILURE);
+	}
 
+	// TODO: Ask instructor if the program should also output a newline at end??
+	fprintf(stdout, "%s", resp); 
 
-	// Do some leanup	
+	// Do some cleanup	
 	cleanup_memory(message, key, servinfo);	
 
 	return 0;
