@@ -103,10 +103,10 @@ int main(int argc, char const *argv[]) {
 				exit(EXIT_FAILURE);
 			} 
 
-			printf("DEBUG: server: Received this handshake: %s\n", handshake);
+			// printf("DEBUG: server: Received this handshake: %s\n", handshake);
 			
 			if (strcmp(handshake, handshake_greeting) == 0 ) {
-				printf("DEBUG: server: Handshake request matches expected - attempting to write the response.\n");
+				// printf("DEBUG: server: Handshake request matches expected - attempting to write the response.\n");
 
 				if (num_written = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
 					perror("write");
@@ -124,17 +124,17 @@ int main(int argc, char const *argv[]) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
-			printf("DEBUG: server: received 'msg': %s\n", msg);
+			// printf("DEBUG: server: received 'msg': %s\n", msg);
 
 			// Read the second write to socket - this should be the key
 			if ( (num_read = read(cfd, key, BUF_SIZE)) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
-			printf("DEBUG: server: received 'key': %s\n", key);
+			// printf("DEBUG: server: received 'key': %s\n", key);
 
 			char * resp = encrypt_string(msg, key, 0); // TODO: Make sure this is passed arg3 of '1' in decryption verison
-			printf("DEBUG: server: encrypt_string(msg, key) yields resp: %s\n", resp);
+			// printf("DEBUG: server: encrypt_string(msg, key) yields resp: %s\n", resp);
 
 			// We write back the entire string plus a null byte so that the receiving end knows
 			// when to null terminate its string!

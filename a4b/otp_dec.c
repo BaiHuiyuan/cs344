@@ -96,8 +96,8 @@ int main(int argc, char const *argv[]) {
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
 	if (strcmp(resp, handshake_response) != 0 ) {
-		fprintf(stderr, "DEBUG: client: handshake_response was:\n%s\nExpected:\n%s\n", resp, handshake_response);
-		perror_exit("otp_dec: handshake: failed to handshake succesfully, connection refused", EXIT_FAILURE);
+		fprintf(stderr, "ERROR: otp_dec: handshake: failed to handshake succesfully, connection refused", resp, handshake_response);
+		exit(EXIT_FAILURE);
 	}
 	
 	// Send the message and key to server for processing:
