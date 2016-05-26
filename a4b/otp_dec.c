@@ -80,7 +80,7 @@ int main(int argc, char const *argv[]) {
 
 
 	// Variables for sending and receiving responses
-	long len, bytes_sent, bytes_received;
+	long len, bytes_sent, bytes_received, bytes_left;
 	char resp[BUF_SIZE];
 	
 
@@ -100,17 +100,24 @@ int main(int argc, char const *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 	
-	// Send the message and key to server for processing:
+	// Send the message  length, message, and key to server for processing:
+	// Message length
+	long msg_length = strlen(message);
+	bytes_left = msg_length;
+
+	if (bytes_sent = send(sfd, &msg_length, sizeof(long), 0) == -1)
+		perror_exit("send", EXIT_FAILURE);
+
 	// Message
-	if(bytes_sent = send(sfd, message, strlen(message), 0) == -1)
+	if(bytes_sent = send(sfd, message, msg_length, 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
 	// Key
-	if(bytes_sent = send(sfd, key, strlen(key), 0) == -1)
+	if(bytes_sent = send(sfd, key, msg_length, 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
 	// Receive response from the server and print to screen.
-	if (bytes_received = read(sfd, resp, BUF_SIZE) == -1) {
+	if (bytes_received = read(sfd, resp, msg_length) == -1) {
 		perror_exit("read", EXIT_FAILURE);
 	}
 

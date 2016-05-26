@@ -29,7 +29,6 @@ int main(int argc, char const *argv[]) {
 	// Verify Arguments are valid
 	check_argument_count(argc, 2, "Usage: otp_dec_d port\n");
 
-
 	// parse port from command line argument and check result
 	// Even though we are using the string version of the port, validate as an int
 	errno = 0; // 0 out before evaluating the call to strtol
@@ -37,11 +36,10 @@ int main(int argc, char const *argv[]) {
 	validate_port(port, errno);
 	const char * port_str = argv[1];
 
+
 	// Variables for sockets and the server address
 	int sfd, cfd, status;  
 	long num_read, num_written; // # of bytes read
-	// char ciphertext[BUF_SIZE];
-	// char key[BUF_SIZE];
 	struct addrinfo hints, *servinfo;// , *p;
 
 
@@ -72,13 +70,11 @@ int main(int argc, char const *argv[]) {
 	
 
 	// listen for up to 5 connections in queue
-	// TODO: See if this fits the requirement for the assignment as the pool or not?
-	// TODO: I think we need to fork off but can ask on forums about this.
 	if ( listen(sfd, 5) == -1)
 		perror_exit("listen", EXIT_FAILURE);
 
 
-	// Handle clients iteratively. 
+	// Handle clients using forks
 	// Cite: TLPI pg 1168 and beej guide, Slide 12+ of lecture 17
 	while (1) {
 		// Accept a connection on a new socket (cfd) from queue
@@ -89,6 +85,7 @@ int main(int argc, char const *argv[]) {
 		}
 
 		pid_t pid = fork();
+
 		if (pid == 0) {
 			// child process -- handle the connection
 			char ciphertext[BUF_SIZE];
@@ -104,13 +101,9 @@ int main(int argc, char const *argv[]) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			} 
-			// handshake[num_read] = '\0';
-
-			// printf("DEBUG: server: Received this handshake: %s\n", handshake);
 			
 			if (strcmp(handshake, handshake_greeting) == 0 ) {
-				// printf("DEBUG: server: Handshake request matches expected - attempting to write the response.\n");
-
+				// Handshake succesfull, write back success response
 				if (num_written = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
 					perror("write");
 					exit(EXIT_FAILURE);
@@ -126,31 +119,32 @@ int main(int argc, char const *argv[]) {
 				exit(EXIT_FAILURE);
 			}
 			
+			// Receive from client the number of bytes (message_length)
+			long message_length = 0;
+			if ( (num_read = read(cfd, &message_length, sizeof(long))) == -1) {
+				perror("read");
+				exit(EXIT_FAILURE);
+			}
 
 			// Read the first write to socket - this should be the ciphertext
-			if ( (num_read = read(cfd, ciphertext, BUF_SIZE)) == -1) {
+			if ( (num_read = read(cfd, ciphertext, message_length)) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
-			// ciphertext[num_read] = '\0';
-
-			// printf("DEBUG: server: received 'ciphertext': %s\n", ciphertext);
 
 			// Read the second write to socket - this should be the key
-			if ( (num_read = read(cfd, key, BUF_SIZE)) == -1) {
+			// Note that we can ignore extraneous characters in the key beyond message_length
+			if ( (num_read = read(cfd, key, message_length)) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
-			// key[num_read] = '\0';
-			
-			// printf("DEBUG: server: received 'key': %s\n", key);
 
+			// Generate a response as a string of characters
 			char * resp = encrypt_string(ciphertext, key, 1);
-			// printf("DEBUG: server: encrypt_string(ciphertext, key) yields resp: %s\n", resp);
+			
 
-			// We write back the entire string plus a null byte so that the receiving end knows
-			// when to null terminate its string!
-			if (num_written = write(cfd, resp, strlen(resp) + 1) == -1) {
+			// Write back the string, stopping at message_length characters
+			if (num_written = write(cfd, resp, message_length) == -1) {
 				perror("write");
 				exit(EXIT_FAILURE);
 			}
