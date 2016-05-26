@@ -237,4 +237,29 @@ char * encrypt_string(char * msg, char * key, int reverse_encryption_mode) {
 	return str_encr;
 }
 
+/*******************************************************************************
+* void safe_transmit_msg_on_socket(int message_length, int fd, char * buffer, int mode) {
+* 
+*******************************************************************************/
+void safe_transmit_msg_on_socket(int fd, char * buffer, int message_length, int mode) {
+	// mode == 1 : read | mode == 2 : write
+	int bytes_remaining = message_length, bytes_transmitted = 0;
+	while ( bytes_remaining > 0 ) {
+		int i = message_length - bytes_remaining;
+		if (mode == 1)
+			bytes_transmitted = read(fd, buffer + i, bytes_remaining);
+		else if (mode == 2)
+			bytes_transmitted = write(fd, buffer, bytes_remaining);
+		bytes_remaining -= bytes_transmitted;
+	}
+	if (bytes_transmitted == -1) {
+		if (mode == 1)
+			perror("read");
+		else if (mode == 2)
+			perror("write");	
+		exit(EXIT_FAILURE);
+	}
+}
+
+
 #endif

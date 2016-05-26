@@ -27,15 +27,13 @@ int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
 	check_argument_count(argc, 4, "Usage: otp_enc message key port\n");
-
-	// parse port from command line argument and check result
 	
-	// Even though we end up using string version of port, validate is valid int
+	// Parse and validate port, save port as a string for loading address
 	int port = convert_string_to_int(argv[3]);
 	validate_port(port, errno);
 	const char * port_str = argv[3];
 
-	// Read the input files and verify key is long enough and no invalid characters
+	// Read string from files, validate lengths and characters meet requirements
 	char * message = get_string_from_file(argv[1]);
 	char * key = get_string_from_file(argv[2]);
 
@@ -70,7 +68,6 @@ int main(int argc, char const *argv[]) {
 		perror_exit("socket", EXIT_FAILURE);
 	}
 
-
 	// Connect to server indicated by servinfo.ai_addr
 	if(connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
 		cleanup_memory(message, key, servinfo);	
@@ -80,80 +77,48 @@ int main(int argc, char const *argv[]) {
 
 
 	// Variables for sending and receiving responses
-	long len, bytes_sent, bytes_received, bytes_left;
+	long len, bytes_sent, bytes_received, bytes_remaining;
 	char resp[BUF_SIZE];
 	
-
 	// Send handshake greeting to server and verify talking to otp_enc_d
-	const char * handshake_greeting = "otp_enc requests encryption";
-	const char * handshake_response = "otc_enc_d confirms encryption";
+	char * handshake_greeting = "otp_enc requests encryption";
+	char * handshake_response = "otc_enc_d confirms encryption";
 
-	if(bytes_sent = send(sfd, handshake_greeting, strlen(handshake_greeting), 0) == -1) {
-		perror_exit("send", EXIT_FAILURE);
-		// fprintf(stderr, "otp_enc: send: err");
-	}
+	// Send handshake
+	safe_transmit_msg_on_socket(sfd, handshake_greeting, strlen(handshake_greeting), 2);
 
+	// Receive response
+	// safe_transmit_msg_on_socket(sfd, resp, BUF_SIZE, 1);
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
 	if (strcmp(resp, handshake_response) != 0 ) {
+		// This will print whatever respones the server sends (if wasn't correct handshake)
 		fprintf(stderr, "ERROR: %s", resp);
 		exit(EXIT_FAILURE);
 	}
 	
-	// Send the message  length, message, and key to server for processing:
-	// Message length
-	long msg_length = strlen(message);
+	// Send Message length
+	long message_length = strlen(message);
 	
-	if (bytes_sent = send(sfd, &msg_length, sizeof(long), 0) == -1)
+	if (bytes_sent = send(sfd, &message_length, sizeof(long), 0) == -1)
 		perror_exit("send", EXIT_FAILURE);
 
-	// Message
-	bytes_left = msg_length;
-	while(bytes_sent = send(sfd, message, bytes_left, 0) < bytes_left) {
-		bytes_left -= bytes_sent;
-		if (bytes_sent == -1)
-			perror_exit("send", EXIT_FAILURE);
-		else if (bytes_sent > 0) {
-			printf("Sending more bytes (bytes_left = %ld)", bytes_left);
-			continue;
-		}
-		else if (bytes_sent == 0)
-			break;
-	}
+	// Send Message
+	safe_transmit_msg_on_socket(sfd, message, message_length, 2);
 
-	// Key
-	bytes_left = msg_length;
-	while(bytes_sent = send(sfd, key, bytes_left, 0) < bytes_left) {
-		bytes_left -= bytes_sent;
-		if (bytes_sent == -1)
-			perror_exit("send", EXIT_FAILURE);
-		else if (bytes_sent > 0) {
-			printf("Sending more bytes (bytes_left = %ld)", bytes_left);
-			continue;
-		}
-		else if (bytes_sent == 0)
-			break;
-	}
+	// Send Key
+	safe_transmit_msg_on_socket(sfd, key, message_length, 2);
 
 	// Receive response from the server and print to screen.
-	bytes_left = msg_length;
-	while(bytes_received = read(sfd, resp, msg_length) < bytes_left) {
-		bytes_left -= bytes_received;
-		if (bytes_received == -1)
-			perror_exit("read", EXIT_FAILURE);
-		else if (bytes_received > 0) {
-			printf("Reading more bytes (bytes_left = %ld)", bytes_left);
-			continue;
-		}
-		else if (bytes_received == 0)
-			break;
-	}
+	safe_transmit_msg_on_socket(sfd, resp, message_length, 1);
 
-	// fprintf(stdout, "%s\n", resp); 
-	write(STDOUT_FILENO, resp, msg_length);
+	// Write the message to the stdout filestream as bytes
+	// Note: This is a lot easier than storing a nullterminated string and
+	// the main reason I got the message_length ahead of time
+	write(STDOUT_FILENO, resp, message_length);
 	write(STDOUT_FILENO, "\n", 1);
 
-	// Do some cleanup	
+	// Free the dynamic allocated memory we used
 	cleanup_memory(message, key, servinfo);	
 
 	return 0;

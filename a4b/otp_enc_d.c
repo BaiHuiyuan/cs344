@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
 
 	// Variables for sockets and the server address
 	int sfd, cfd, status;  
-	long num_read, num_written; // # of bytes read
+	long bytes_received, bytes_sent, bytes_remaining; // # of bytes read
 	struct addrinfo hints, *servinfo;// , *p;
 
 
@@ -97,14 +97,14 @@ int main(int argc, char const *argv[]) {
 
 			char handshake[BUF_SIZE];
 
-			if ( (num_read = read(cfd, handshake, BUF_SIZE)) == -1) {
+			if ( (bytes_received = read(cfd, handshake, BUF_SIZE)) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
 			
 			if (strcmp(handshake, handshake_greeting) == 0 ) {
 				// Handshake succesfull, write back success response
-				if (num_written = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
+				if (bytes_sent = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
 					perror("write");
 					exit(EXIT_FAILURE);
 				}				
@@ -112,7 +112,7 @@ int main(int argc, char const *argv[]) {
 			else {
 				// Handshake failed, write back fail response
 				char * fail_response = "otp_enc_d rejects otp_dec handshake";
-				if (num_written = write(cfd, fail_response, strlen(fail_response)) == -1) {
+				if (bytes_sent = write(cfd, fail_response, strlen(fail_response)) == -1) {
 					perror("write");
 					exit(EXIT_FAILURE);
 				}
@@ -121,32 +121,66 @@ int main(int argc, char const *argv[]) {
 			
 			// Receive from client the number of bytes (message_length)
 			long message_length = 0;
-			if ( (num_read = read(cfd, &message_length, sizeof(long))) == -1) {
+			if ( (bytes_received = read(cfd, &message_length, sizeof(long))) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
 
 			// Read the first write to socket - this should be the message
-			if ( (num_read = read(cfd, msg, message_length)) == -1) {
+			bytes_remaining = message_length;
+			while ( bytes_remaining > 0 ) {
+				int i = message_length - bytes_remaining;
+				bytes_received = read(cfd, msg + i, bytes_remaining);
+				bytes_remaining -= bytes_received;
+			}
+			if (bytes_received == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
 
+			// if ( (bytes_received = read(cfd, msg, message_length)) == -1) {
+			// 	perror("read");
+			// 	exit(EXIT_FAILURE);
+			// }
+
 			// Read the second write to socket - this should be the key
 			// Note that we can ignore extraneous characters in the key beyond message_length
-			if ( (num_read = read(cfd, key, message_length)) == -1) {
+			bytes_remaining = message_length;
+			while ( bytes_remaining > 0 ) {
+				int i = message_length - bytes_remaining;
+				bytes_received = read(cfd, key + i, bytes_remaining);
+				bytes_remaining -= bytes_received;
+			}
+			if (bytes_received == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
+
+
+			// if ( (bytes_received = read(cfd, key, message_length)) == -1) {
+			// 	perror("read");
+			// 	exit(EXIT_FAILURE);
+			// }
 
 			// Generate a response as a string of characters
 			char * resp = encrypt_string(msg, key, 0); // TODO: Make sure this is passed arg3 of '1' in decryption verison
 
 			// Write back the string, stopping at message_length characters
-			if (num_written = write(cfd, resp, message_length) == -1) {
+			bytes_remaining = message_length;
+			while ( bytes_remaining > 0 ) {
+				int i = message_length - bytes_remaining;
+				bytes_sent = write(cfd, resp, bytes_remaining);
+				bytes_remaining -= bytes_sent;
+			}
+			if (bytes_sent == -1) {
 				perror("write");
 				exit(EXIT_FAILURE);
-			}
+			}			
+
+			// if (bytes_sent = write(cfd, resp, message_length) == -1) {
+			// 	perror("write");
+			// 	exit(EXIT_FAILURE);
+			// }
 
 			// Close the connection after processing data
 			if (close(cfd) == -1) {
