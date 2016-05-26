@@ -40,8 +40,8 @@ int main(int argc, char const *argv[]) {
 	// Variables for sockets and the server address
 	int sfd, cfd, status;  
 	long num_read, num_written; // # of bytes read
-	char ciphertext[BUF_SIZE];
-	char key[BUF_SIZE];
+	// char ciphertext[BUF_SIZE];
+	// char key[BUF_SIZE];
 	struct addrinfo hints, *servinfo;// , *p;
 
 
@@ -91,7 +91,8 @@ int main(int argc, char const *argv[]) {
 		pid_t pid = fork();
 		if (pid == 0) {
 			// child process -- handle the connection
-		
+			char ciphertext[BUF_SIZE];
+			char key[BUF_SIZE];		
 
 			// Check for handshake message.
 			const char * handshake_greeting = "otp_dec requests decryption";
