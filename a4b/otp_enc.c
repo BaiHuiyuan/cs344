@@ -80,7 +80,7 @@ int main(int argc, char const *argv[]) {
 
 
 	// Variables for sending and receiving responses
-	int len, bytes_sent, bytes_received;
+	ssize_t len, bytes_sent, bytes_received;
 	char resp[BUF_SIZE];
 	
 
