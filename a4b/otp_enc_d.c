@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
 
 	// Variables for sockets and the server address
 	int sfd, cfd, status;  
-	ssize_t num_read, num_written; // # of bytes read
+	long num_read, num_written; // # of bytes read
 	char msg[BUF_SIZE];
 	char key[BUF_SIZE];
 	struct addrinfo hints, *servinfo;// , *p;
