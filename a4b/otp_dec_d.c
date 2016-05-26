@@ -115,7 +115,12 @@ int main(int argc, char const *argv[]) {
 				}				
 			} 
 			else {
-				// We silently (for now?) reject a bad handshake message
+				// Handshake failed, write back fail response
+				char * fail_response = "otp_dec_d rejects otp_enc handshake";
+				if (num_written = write(cfd, fail_response, strlen(fail_response)) == -1) {
+					perror("write");
+					exit(EXIT_FAILURE);
+				}
 				exit(EXIT_FAILURE);
 			}
 			

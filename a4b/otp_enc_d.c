@@ -106,7 +106,7 @@ int main(int argc, char const *argv[]) {
 			// printf("DEBUG: server: Received this handshake: %s\n", handshake);
 			
 			if (strcmp(handshake, handshake_greeting) == 0 ) {
-				// printf("DEBUG: server: Handshake request matches expected - attempting to write the response.\n");
+				// Handshake succesfull, write back success response
 
 				if (num_written = write(cfd, handshake_response, strlen(handshake_response)) == -1) {
 					perror("write");
@@ -114,7 +114,12 @@ int main(int argc, char const *argv[]) {
 				}				
 			} 
 			else {
-								// We silently (for now?) reject a bad handshake message
+				// Handshake failed, write back fail response
+				char * fail_response = "otp_enc_d rejects otp_dec handshake";
+				if (num_written = write(cfd, fail_response, strlen(fail_response)) == -1) {
+					perror("write");
+					exit(EXIT_FAILURE);
+				}
 				exit(EXIT_FAILURE);
 			}
 			

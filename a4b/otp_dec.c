@@ -96,7 +96,7 @@ int main(int argc, char const *argv[]) {
 	bytes_received = read(sfd, resp, BUF_SIZE);
 
 	if (strcmp(resp, handshake_response) != 0 ) {
-		fprintf(stderr, "ERROR: otp_dec: handshake: failed to handshake succesfully, connection refused", resp, handshake_response);
+		fprintf(stderr, "ERROR: %s", resp);
 		exit(EXIT_FAILURE);
 	}
 	
@@ -115,7 +115,7 @@ int main(int argc, char const *argv[]) {
 	}
 
 	// TODO: Ask instructor if the program should also output a newline at end??
-	fprintf(stdout, "%s", resp); 
+	fprintf(stdout, "%s\n", resp); 
 
 	// Do some cleanup	
 	cleanup_memory(message, key, servinfo);	
