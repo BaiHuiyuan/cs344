@@ -27,7 +27,12 @@
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_count(argc, 2, "Usage: otp_enc_d port\n");
+	#ifdef _DECRYPTION_MODE
+	const char * usage_msg = "Usage: otp_dec_d port\n";
+	#else
+	const char * usage_msg = "Usage: otp_enc_d port\n";
+	#endif
+	check_argument_count(argc, 2, usage_msg);
 
 	// parse port from command line argument and check result
 	// Even though we are using the string version of the port, validate as an int
@@ -55,28 +60,25 @@ int main(int argc, char const *argv[]) {
 		perror_exit("getaddrinfo", EXIT_FAILURE);
 	}
 
-
 	// Now open a TCP socket stream; Cite: Slide 10 Unix Networking 2 (lecture)
 	// Cite: Beej network guide for using hints structure
 	if ((sfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
 		perror_exit("socket", EXIT_FAILURE);
 
-
 	// Bind the server socket
 	if ( bind(sfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
-		// printf("sfd: %d\t servinfo->ai_addr: %d\t sizeof: %d\n", sfd, servinfo->ai_addr, sizeof(servinfo->ai_addrlen));
 		perror("bind");
 		exit(EXIT_FAILURE);
 	}
 	
-
 	// listen for up to 5 connections in queue
 	if ( listen(sfd, 5) == -1)
 		perror_exit("listen", EXIT_FAILURE);
 
 
-	// Handle clients using forks
+	
 	// Cite: TLPI pg 1168 and beej guide, Slide 12+ of lecture 17
+
 	while (1) {
 		// Accept a connection on a new socket (cfd) from queue
 		// Will block until a connection comes in.
@@ -85,18 +87,23 @@ int main(int argc, char const *argv[]) {
 			continue;
 		}
 
+		// Handle clients using fork() for each connection
 		pid_t pid = fork();
 
-		// child process
+		// Child process:
 		if (pid == 0) {
  			// handle the connection by first allocating own memory for msg and keys
 			char msg[BUF_SIZE];
 			char key[BUF_SIZE];
 
 			// Check for handshake message.
+			#ifdef _DECRYPTION_MODE
+			const char * handshake_greeting = "otp_dec requests decryption";
+			const char * handshake_response = "otc_dec_d confirms decryption";
+			#else
 			const char * handshake_greeting = "otp_enc requests encryption";
 			const char * handshake_response = "otc_enc_d confirms encryption";
-
+			#endif
 			char handshake[BUF_SIZE];
 			if ( (bytes_received = read(cfd, handshake, BUF_SIZE)) == -1) {
 				perror("read");
@@ -112,7 +119,11 @@ int main(int argc, char const *argv[]) {
 			} 
 			else {
 				// Handshake failed, write back fail response
+				#ifdef _DECRYPTION_MODE
+				char * fail_response = "otp_dec_d rejects otp_enc handshake";
+				#else
 				char * fail_response = "otp_enc_d rejects otp_dec handshake";
+				#endif
 				if (bytes_sent = write(cfd, fail_response, strlen(fail_response)) == -1) {
 					perror("write");
 					exit(EXIT_FAILURE);
@@ -135,7 +146,14 @@ int main(int argc, char const *argv[]) {
 			safe_transmit_msg_on_socket(cfd, key, message_length, 1);
 
 			// Generate a response as a string of characters
-			char * resp = encrypt_string(msg, key, 0); // TODO: Make sure this is passed arg3 of '1' in decryption verison
+			
+			#ifdef _DECRYPTION_MODE
+			int _DECRYPTION_MODE = 1; // Decryption mode
+			#else
+			int _DECRYPTION_MODE = 0; // Encryption mode
+			#endif
+			
+			char * resp = encrypt_string(msg, key, _DECRYPTION_MODE);
 
 			// Write back the string, stopping at message_length characters
 			safe_transmit_msg_on_socket(cfd, resp, message_length, 2);

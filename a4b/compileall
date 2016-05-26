@@ -1,16 +1,20 @@
 #!/bin/bash
-
+#
 # Program 4: One Time Pad
 # Author: Shawn S Hillyer
 # OSU CS-344-400
 # Date: 6/6/2016
 # Usage:
 # compileall
-
+#
 # Description: Script that compiles the source code into the correct executables for assignment 4
+#
 
 gcc -std=c99 otp_enc.c otp.h -o otp_enc -D_XOPEN_SOURCE
-gcc -std=c99 otp_enc_d.c otp.h -o otp_enc_d -D_XOPEN_SOURCE
+#gcc -std=c99 otp_enc_d.c otp.h -o otp_enc_d -D_XOPEN_SOURCE
 gcc -std=c99 otp_dec.c otp.h -o otp_dec -D_XOPEN_SOURCE
-gcc -std=c99 otp_dec_d.c otp.h -o otp_dec_d -D_XOPEN_SOURCE
+#gcc -std=c99 otp_dec_d.c otp.h -o otp_dec_d -D_XOPEN_SOURCE
 gcc -std=c99 keygen.c otp.h -o keygen -D_XOPEN_SOURCE
+#
+gcc -std=c99 server.c otp.h -o otp_enc_d -D_XOPEN_SOURCE
+gcc -std=c99 server.c otp.h -o otp_dec_d -D_XOPEN_SOURCE -D_DECRYPTIONMODE
