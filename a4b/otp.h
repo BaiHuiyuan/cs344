@@ -136,7 +136,7 @@ void validate_characters(char * string) {
 	for (int i = 0; i < len; ++i) {
 		char cur = string[i];
 		if (!isupper(cur) && !isspace(cur)) {
-			fprintf(stderr, "otp_enc error: input contains bad characters\n");
+			fprintf(stderr, "error: input contains bad characters\n");
 			exit(1);
 		}
 	}

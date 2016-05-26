@@ -103,7 +103,8 @@ int main(int argc, char const *argv[]) {
 			if ( (num_read = read(cfd, handshake, BUF_SIZE)) == -1) {
 				perror("read");
 				exit(EXIT_FAILURE);
-			} 
+			}
+			// handshake[num_read] = '\0';
 
 			// printf("DEBUG: server: Received this handshake: %s\n", handshake);
 			
@@ -131,6 +132,8 @@ int main(int argc, char const *argv[]) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
+			// msg[num_read] = '\0';
+
 			// printf("DEBUG: server: received 'msg': %s\n", msg);
 
 			// Read the second write to socket - this should be the key
@@ -138,6 +141,8 @@ int main(int argc, char const *argv[]) {
 				perror("read");
 				exit(EXIT_FAILURE);
 			}
+			// key[num_read] = '\0';
+
 			// printf("DEBUG: server: received 'key': %s\n", key);
 
 			char * resp = encrypt_string(msg, key, 0); // TODO: Make sure this is passed arg3 of '1' in decryption verison
@@ -157,6 +162,7 @@ int main(int argc, char const *argv[]) {
 			}
 
 			free(resp);
+			exit(0);
 		}
 		else {
 			// Parent process. GO back to top and listen some more
