@@ -6,9 +6,10 @@
 *
 * Description:  Connects to otp_enc_d on port and asks it to perform one time
 *               pad encryption of plaintext using key. Create decryption client
-*               using the -D _DECRYPTION_MODE flag
+*               using the -D _DECRYPTION_MODE flag, which connects to otp_dec_d
 *               
 * Usage:        otp_enc plaintext key port
+*               otp_dec ciphertext key port
 *               plaintext is a plaintext file to encrypt
 *               key is a plaintext file used to encrypt using OTP method
 *               port is the port number of server.c
@@ -27,8 +28,12 @@
 int main(int argc, char const *argv[]) {
 	
 	// Verify Arguments are valid
-	check_argument_count(argc, 4, "Usage: otp_enc message key port\n");
-	
+	#ifdef _DECRYPTION_MODE
+	check_argument_count(argc, 4, "Usage: otp_dec ciphertext key port\n");
+	#else
+	check_argument_count(argc, 4, "Usage: otp_enc plaintext key port\n");
+	#endif
+
 	// Parse and validate port, save port as a string for loading address
 	int port = convert_string_to_int(argv[3]);
 	validate_port(port, errno);
@@ -81,10 +86,15 @@ int main(int argc, char const *argv[]) {
 	long len, bytes_sent, bytes_received, bytes_remaining;
 	char resp[BUF_SIZE];
 	
-	// Send handshake greeting to server and verify talking to otp_enc_d
+	// Send handshake greeting to server and verify talking to otp_enc_d / otp_dec_d
+	#ifdef _DECRYPTION_MODE
+	const char * handshake_greeting = "otp_dec requests decryption";
+	const char * handshake_response = "otc_dec_d confirms decryption";
+	#else
 	char * handshake_greeting = "otp_enc requests encryption";
 	char * handshake_response = "otc_enc_d confirms encryption";
-
+	#endif
+	
 	// Send handshake
 	safe_transmit_msg_on_socket(sfd, handshake_greeting, strlen(handshake_greeting), 2);
 
