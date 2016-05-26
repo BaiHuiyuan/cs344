@@ -1,5 +1,5 @@
 /*******************************************************************************
-* File:         otp_enc_d.c
+* File:         server.c
 * Author:       Shawn S Hillyer
 * Date:         June 6, 2016
 * Course:       OSU CSS 344-400: Assignment 04
@@ -7,9 +7,11 @@
 * Description:  A daemon-like server process that listens on specified port for
 *               a connection from otp_enc. If handshake succesful, attempts
 *               to encrypt the plaintext using the key sent by client. Sends the
-*               encrypted text back to the client.
+*               encrypted text back to the client. Create decryption server using
+*               the -D _DECRYPTION_MODE flag
 *
 * Usage:        otp_enc_d <port_number> &
+*               otp_dec_d <port_number> &
 *               Port must be in the range [MAX_PORT_NUMBER .. ]
 *               Should always run in background mode
 *               
@@ -148,12 +150,12 @@ int main(int argc, char const *argv[]) {
 			// Generate a response as a string of characters
 			
 			#ifdef _DECRYPTION_MODE
-			int _DECRYPTION_MODE = 1; // Decryption mode
+			int decryption_mode_on = 1; // Decryption mode
 			#else
-			int _DECRYPTION_MODE = 0; // Encryption mode
+			int decryption_mode_on = 0; // Encryption mode
 			#endif
 			
-			char * resp = encrypt_string(msg, key, _DECRYPTION_MODE);
+			char * resp = encrypt_string(msg, key, decryption_mode_on);
 
 			// Write back the string, stopping at message_length characters
 			safe_transmit_msg_on_socket(cfd, resp, message_length, 2);
