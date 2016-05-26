@@ -12,7 +12,7 @@ SRC3 = otp_dec.c
 SRC4 = otp_dec_d.c
 SRC5 = keygen.c
 
-SRCS = ${SRC1}
+SRCS = ${SRC1} ${SRC2} ${SRC3} ${SRC4} ${SRC5}
 
 HEADER1 = otp.h
 HEADERS = ${HEADER1}
