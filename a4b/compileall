@@ -15,8 +15,8 @@
 #gcc -std=c99 otp_dec.c otp.h -o otp_dec -D_XOPEN_SOURCE
 #gcc -std=c99 otp_dec_d.c otp.h -o otp_dec_d -D_XOPEN_SOURCE
 #
-gcc -std=c99 server.c otp.h -o otp_enc_d -D_XOPEN_SOURCE
-gcc -std=c99 server.c otp.h -o otp_dec_d -D_XOPEN_SOURCE -D _DECRYPTION_MODE
 gcc -std=c99 client.c otp.h -o otp_enc -D_XOPEN_SOURCE
+gcc -std=c99 server.c otp.h -o otp_enc_d -D_XOPEN_SOURCE
 gcc -std=c99 client.c otp.h -o otp_dec -D_XOPEN_SOURCE -D _DECRYPTION_MODE
+gcc -std=c99 server.c otp.h -o otp_dec_d -D_XOPEN_SOURCE -D _DECRYPTION_MODE
 gcc -std=c99 keygen.c otp.h -o keygen -D_XOPEN_SOURCE

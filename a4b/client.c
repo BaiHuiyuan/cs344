@@ -88,13 +88,13 @@ int main(int argc, char const *argv[]) {
 	
 	// Send handshake greeting to server and verify talking to otp_enc_d / otp_dec_d
 	#ifdef _DECRYPTION_MODE
-	const char * handshake_greeting = "otp_dec requests decryption";
-	const char * handshake_response = "otc_dec_d confirms decryption";
+	char * handshake_greeting = "otp_dec requests decryption";
+	char * handshake_response = "otc_dec_d confirms decryption";
 	#else
 	char * handshake_greeting = "otp_enc requests encryption";
 	char * handshake_response = "otc_enc_d confirms encryption";
 	#endif
-	
+
 	// Send handshake
 	safe_transmit_msg_on_socket(sfd, handshake_greeting, strlen(handshake_greeting), 2);
 
