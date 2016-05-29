@@ -92,7 +92,7 @@ void validate_port(int port, int err) {
 		|| (errno != 0 && port == 0) 
 		|| (port > MAX_PORT_NUMBER || port < MIN_PORT_NUMBER)) 
 	{
-		error_exit("strtol");
+		perror("strtol");
 		exit(EXIT_FAILURE);
 	}
 }
