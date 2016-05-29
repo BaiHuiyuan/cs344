@@ -30,8 +30,11 @@
 #include <unistd.h>
 
 
-// Constants #define MIN_PORT_NUMBER 1 #define MAX_PORT_NUMBER 65535 #define
-BUF_SIZE 1000000 #define NUM_CH 27
+// Constants 
+#define MIN_PORT_NUMBER 1 
+#define MAX_PORT_NUMBER 65535 
+#define BUF_SIZE 1000000 
+#define NUM_CH 27
 
 
 /*******************************************************************************
