@@ -39,7 +39,7 @@ default:
 	${CC} ${CFLAGS} ${SRC5} ${HEADERS} -o ${PROG5} -D_XOPEN_SOURCE
 
 zip:
-	zip ${ZIP} ${SRCS} ${HEADERS} ${DOCS} makefile compileall
+	zip ${ZIP} ${SRCS} ${HEADERS} ${DOCS} makefile compileall p4gradingscript
 
 clean:
 	rm -f ${PROGS} *.o *.~

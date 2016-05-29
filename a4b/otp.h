@@ -30,11 +30,8 @@
 #include <unistd.h>
 
 
-// Constants
-#define MIN_PORT_NUMBER 1
-#define MAX_PORT_NUMBER 65535
-#define BUF_SIZE 1000000
-#define NUM_CH 27
+// Constants #define MIN_PORT_NUMBER 1 #define MAX_PORT_NUMBER 65535 #define
+BUF_SIZE 1000000 #define NUM_CH 27
 
 
 /*******************************************************************************
@@ -92,7 +89,8 @@ void validate_port(int port, int err) {
 		|| (errno != 0 && port == 0) 
 		|| (port > MAX_PORT_NUMBER || port < MIN_PORT_NUMBER)) 
 	{
-		perror_exit("strtol", EXIT_FAILURE);
+		error_exit("strtol");
+		exit(EXIT_FAILURE);
 	}
 }
 
